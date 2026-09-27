@@ -46,3 +46,25 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Firebase configuration files containing app secrets
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+*serviceAccountKey*.json
+*.env
+*.env.*
+
+# Local development artifacts
+.config/
+.dart-tool/
+.dartServer/
+.sudo_as_admin_successful
+.gitconfig
+.env
+*.env
+!.env.example
+
+.env
+*.env
+!.env.example
