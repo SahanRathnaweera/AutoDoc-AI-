@@ -18,9 +18,25 @@ MODEL_PATHS = {
 
 models = {}
 
+
+def _is_git_lfs_pointer(model_path: Path) -> bool:
+    header = model_path.read_bytes()[:200]
+    return (
+        b"version https://git-lfs.github.com/spec/v1" in header
+        and b"oid sha256:" in header
+        and b"size " in header
+    )
+
+
 for vehicle_type, model_path in MODEL_PATHS.items():
     if not model_path.exists():
         raise FileNotFoundError(f"Model file not found: {model_path}")
+    if _is_git_lfs_pointer(model_path):
+        raise RuntimeError(
+            "Model artifact is a Git LFS pointer, not a downloaded model file: "
+            f"{model_path}. Run 'git lfs install' and 'git lfs pull' in the "
+            "repository root to fetch model artifacts before starting the API."
+        )
     models[vehicle_type] = joblib.load(model_path)
 
 

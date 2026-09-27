@@ -50,6 +50,14 @@ cd AutoDoc-AI-
 ## Run code generation (if applicable): flutter pub run build_runner build --delete-conflicting-outputs
 ## Run the application: flutter run
 
+## 🤖 AI Service Model Artifacts
+The backend AI service requires both model files before startup:
+- `backend/ai_service/models/car_price_model.joblib`
+- `backend/ai_service/models/bike_price_model.joblib`
+
+These files are tracked with Git LFS. If the API reports that a model file is still a Git LFS pointer, fetch artifacts from the repository root:
+`git lfs install && git lfs pull`
+
 ## 🌿 Git Branching Strategy
 ## main: Production-ready stable code.
 ## dev: Active development branch.
