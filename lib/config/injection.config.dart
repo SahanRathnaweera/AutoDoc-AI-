@@ -38,6 +38,24 @@ import '../features/authentication/domain/usecases/reset_password.dart'
     as _i756;
 import '../features/authentication/domain/usecases/send_email_verification.dart'
     as _i763;
+import '../features/storage/data/datasources/storage_remote_data_source.dart'
+    as _i68;
+import '../features/storage/data/repositories/storage_repository_impl.dart'
+    as _i426;
+import '../features/storage/domain/repositories/storage_repository.dart'
+    as _i151;
+import '../features/storage/domain/usecases/delete_storage_file.dart' as _i409;
+import '../features/storage/domain/usecases/get_storage_download_url.dart'
+    as _i717;
+import '../features/storage/domain/usecases/upload_inspection_audio.dart'
+    as _i580;
+import '../features/storage/domain/usecases/upload_inspection_photo.dart'
+    as _i937;
+import '../features/storage/domain/usecases/upload_user_profile_photo.dart'
+    as _i567;
+import '../features/storage/domain/usecases/upload_vehicle_document.dart'
+    as _i679;
+import '../features/storage/domain/usecases/upload_vehicle_photo.dart' as _i130;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -67,8 +85,35 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i582.FirebaseTokenProvider>(
       () => _i582.FirebaseTokenProvider(gh<_i59.FirebaseAuth>()),
     );
+    gh.lazySingleton<_i68.StorageRemoteDataSource>(
+      () => _i68.StorageRemoteDataSourceImpl(gh<InvalidType>()),
+    );
+    gh.lazySingleton<_i151.StorageRepository>(
+      () => _i426.StorageRepositoryImpl(gh<_i68.StorageRemoteDataSource>()),
+    );
     gh.lazySingleton<_i716.AuthRepository>(
       () => _i781.AuthRepositoryImpl(gh<_i299.AuthRemoteDataSource>()),
+    );
+    gh.lazySingleton<_i409.DeleteStorageFile>(
+      () => _i409.DeleteStorageFile(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i717.GetStorageDownloadUrl>(
+      () => _i717.GetStorageDownloadUrl(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i580.UploadInspectionAudio>(
+      () => _i580.UploadInspectionAudio(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i937.UploadInspectionPhoto>(
+      () => _i937.UploadInspectionPhoto(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i567.UploadUserProfilePhoto>(
+      () => _i567.UploadUserProfilePhoto(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i679.UploadVehicleDocument>(
+      () => _i679.UploadVehicleDocument(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i130.UploadVehiclePhoto>(
+      () => _i130.UploadVehiclePhoto(gh<_i151.StorageRepository>()),
     );
     gh.lazySingleton<_i518.GetCurrentUser>(
       () => _i518.GetCurrentUser(gh<_i716.AuthRepository>()),

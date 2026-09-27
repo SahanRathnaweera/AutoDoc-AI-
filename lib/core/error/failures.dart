@@ -99,3 +99,23 @@ class StorageFailure extends Failure {
   @override
   int get hashCode => message.hashCode ^ (code?.hashCode ?? 0);
 }
+
+class StorageQuotaExceededFailure extends StorageFailure {
+  const StorageQuotaExceededFailure([super.message = 'Storage quota exceeded', super.code = 'quota-exceeded']);
+}
+
+class StorageFileNotFoundFailure extends StorageFailure {
+  const StorageFileNotFoundFailure([super.message = 'File not found in storage', super.code = 'object-not-found']);
+}
+
+class StorageUnauthorizedFailure extends StorageFailure {
+  const StorageUnauthorizedFailure([super.message = 'Unauthorized storage access', super.code = 'unauthorized']);
+}
+
+class InvalidMimeTypeFailure extends StorageFailure {
+  const InvalidMimeTypeFailure([super.message = 'Unsupported file format or MIME type', super.code = 'invalid-mime-type']);
+}
+
+class FileTooLargeFailure extends StorageFailure {
+  const FileTooLargeFailure([super.message = 'File size exceeds maximum allowed limit', super.code = 'file-too-large']);
+}
