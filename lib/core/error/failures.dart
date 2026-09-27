@@ -66,6 +66,18 @@ class TooManyRequestsFailure extends AuthFailure {
   const TooManyRequestsFailure([super.message = 'Too many requests. Please try again later', super.code = 'too-many-requests']);
 }
 
+class InvalidOtpFailure extends AuthFailure {
+  const InvalidOtpFailure([super.message = 'The SMS verification code entered is invalid', super.code = 'invalid-verification-code']);
+}
+
+class OtpTimeoutFailure extends AuthFailure {
+  const OtpTimeoutFailure([super.message = 'The SMS verification code has expired. Please request a new code', super.code = 'session-expired']);
+}
+
+class PhoneAuthQuotaExceededFailure extends AuthFailure {
+  const PhoneAuthQuotaExceededFailure([super.message = 'SMS verification quota exceeded. Please try again later', super.code = 'quota-exceeded']);
+}
+
 class FirestoreFailure extends Failure {
   final String? code;
 

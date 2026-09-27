@@ -31,6 +31,23 @@ abstract class AuthRemoteDataSource {
   Future<void> sendEmailVerification();
 
   Future<String> getIdToken({bool forceRefresh = false});
+
+  Future<void> verifyPhoneNumber({
+    required String phoneNumber,
+    required void Function(String verificationId, int? resendToken) onCodeSent,
+    required void Function(AuthException exception) onVerificationFailed,
+    void Function(fb_auth.PhoneAuthCredential credential)? onVerificationCompleted,
+    void Function(String verificationId)? onCodeAutoRetrievalTimeout,
+    int? forceResendingToken,
+    Duration timeout = const Duration(seconds: 60),
+  });
+
+  Future<UserModel> signInWithOtp({
+    required String verificationId,
+    required String smsCode,
+    String? displayName,
+    String role = 'client',
+  });
 }
 
 @LazySingleton(as: AuthRemoteDataSource)
@@ -76,7 +93,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         updatedAt: now,
       );
 
-      // Persist user profile to Firestore
       try {
         await _firestore
             .collection(FirestoreCollections.users)
@@ -198,6 +214,102 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
+  @override
+  Future<void> verifyPhoneNumber({
+    required String phoneNumber,
+    required void Function(String verificationId, int? resendToken) onCodeSent,
+    required void Function(AuthException exception) onVerificationFailed,
+    void Function(fb_auth.PhoneAuthCredential credential)? onVerificationCompleted,
+    void Function(String verificationId)? onCodeAutoRetrievalTimeout,
+    int? forceResendingToken,
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    try {
+      await _firebaseAuth.verifyPhoneNumber(
+        phoneNumber: phoneNumber.trim(),
+        timeout: timeout,
+        forceResendingToken: forceResendingToken,
+        verificationCompleted: (credential) {
+          if (onVerificationCompleted != null) {
+            onVerificationCompleted(credential);
+          }
+        },
+        verificationFailed: (e) {
+          onVerificationFailed(_handleFirebaseAuthException(e));
+        },
+        codeSent: onCodeSent,
+        codeAutoRetrievalTimeout: (verificationId) {
+          if (onCodeAutoRetrievalTimeout != null) {
+            onCodeAutoRetrievalTimeout(verificationId);
+          }
+        },
+      );
+    } on fb_auth.FirebaseAuthException catch (e) {
+      onVerificationFailed(_handleFirebaseAuthException(e));
+    } catch (e) {
+      onVerificationFailed(AuthException('Unexpected phone verification error: $e'));
+    }
+  }
+
+  @override
+  Future<UserModel> signInWithOtp({
+    required String verificationId,
+    required String smsCode,
+    String? displayName,
+    String role = 'client',
+  }) async {
+    try {
+      final credential = fb_auth.PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode.trim(),
+      );
+
+      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final user = userCredential.user;
+      if (user == null) {
+        throw AuthException('Phone authentication failed: user is null', code: 'null-user');
+      }
+
+      if (displayName != null && displayName.isNotEmpty) {
+        await user.updateDisplayName(displayName);
+      }
+
+      final doc = await _firestore.collection(FirestoreCollections.users).doc(user.uid).get();
+      if (doc.exists && doc.data() != null) {
+        return UserModel.fromMap(doc.data()!, uid: user.uid);
+      }
+
+      final now = DateTime.now();
+      final userModel = UserModel(
+        uid: user.uid,
+        email: user.email ?? '',
+        displayName: displayName ?? user.displayName,
+        phoneNumber: user.phoneNumber,
+        photoUrl: user.photoURL,
+        isEmailVerified: true,
+        role: role,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      try {
+        await _firestore
+            .collection(FirestoreCollections.users)
+            .doc(user.uid)
+            .set(userModel.toMap(), SetOptions(merge: true));
+      } catch (e) {
+        AppLogger.warning('Failed to persist phone user profile in Firestore: $e');
+      }
+
+      return userModel;
+    } on fb_auth.FirebaseAuthException catch (e) {
+      throw _handleFirebaseAuthException(e);
+    } catch (e) {
+      if (e is AuthException) rethrow;
+      throw AuthException('Failed to sign in with OTP: $e');
+    }
+  }
+
   Future<UserModel> _getUserModelWithFirestoreData(fb_auth.User user) async {
     try {
       final doc = await _firestore
@@ -217,6 +329,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthException _handleFirebaseAuthException(fb_auth.FirebaseAuthException e) {
     AppLogger.error('FirebaseAuthException [${e.code}]: ${e.message}');
     switch (e.code) {
+      case 'invalid-verification-code':
+        return AuthException('The SMS verification code entered is invalid.', code: e.code);
+      case 'session-expired':
+        return AuthException('The SMS verification session has expired. Please request a new code.', code: e.code);
+      case 'quota-exceeded':
+        return AuthException('SMS verification quota exceeded. Please try again later.', code: e.code);
+      case 'invalid-phone-number':
+        return AuthException('The phone number entered is invalid.', code: e.code);
       case 'user-not-found':
         return AuthException('No user account found with this email.', code: e.code);
       case 'wrong-password':

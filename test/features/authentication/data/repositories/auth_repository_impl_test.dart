@@ -17,6 +17,7 @@ void main() {
     uid: 'u123',
     email: 'user@autodoc.ai',
     displayName: 'User',
+    phoneNumber: '+94712345678',
     role: 'client',
   );
 
@@ -120,6 +121,76 @@ void main() {
       );
 
       expect(result, const Left(WeakPasswordFailure('Weak pass', 'weak-password')));
+    });
+  });
+
+  group('phone otp authentication', () {
+    test('verifyPhoneNumber returns Right(null) on success', () async {
+      when(() => mockRemoteDataSource.verifyPhoneNumber(
+            phoneNumber: '+94712345678',
+            onCodeSent: any(named: 'onCodeSent'),
+            onVerificationFailed: any(named: 'onVerificationFailed'),
+            onVerificationCompleted: any(named: 'onVerificationCompleted'),
+            onCodeAutoRetrievalTimeout: any(named: 'onCodeAutoRetrievalTimeout'),
+            forceResendingToken: null,
+            timeout: any(named: 'timeout'),
+          )).thenAnswer((_) async {});
+
+      final result = await repository.verifyPhoneNumber(
+        phoneNumber: '+94712345678',
+        onCodeSent: (_, __) {},
+        onVerificationFailed: (_) {},
+      );
+
+      expect(result, const Right(null));
+    });
+
+    test('verifyPhoneOtp returns Right(UserModel) on valid code', () async {
+      when(() => mockRemoteDataSource.signInWithOtp(
+            verificationId: 'v123',
+            smsCode: '123456',
+            displayName: null,
+            role: 'client',
+          )).thenAnswer((_) async => tUserModel);
+
+      final result = await repository.verifyPhoneOtp(
+        verificationId: 'v123',
+        smsCode: '123456',
+      );
+
+      expect(result, Right(tUserModel));
+    });
+
+    test('verifyPhoneOtp maps invalid-verification-code to InvalidOtpFailure', () async {
+      when(() => mockRemoteDataSource.signInWithOtp(
+            verificationId: 'v123',
+            smsCode: '000000',
+            displayName: null,
+            role: 'client',
+          )).thenThrow(AuthException('Code invalid', code: 'invalid-verification-code'));
+
+      final result = await repository.verifyPhoneOtp(
+        verificationId: 'v123',
+        smsCode: '000000',
+      );
+
+      expect(result, const Left(InvalidOtpFailure('Code invalid', 'invalid-verification-code')));
+    });
+
+    test('verifyPhoneOtp maps session-expired to OtpTimeoutFailure', () async {
+      when(() => mockRemoteDataSource.signInWithOtp(
+            verificationId: 'v123',
+            smsCode: '123456',
+            displayName: null,
+            role: 'client',
+          )).thenThrow(AuthException('Expired', code: 'session-expired'));
+
+      final result = await repository.verifyPhoneOtp(
+        verificationId: 'v123',
+        smsCode: '123456',
+      );
+
+      expect(result, const Left(OtpTimeoutFailure('Expired', 'session-expired')));
     });
   });
 

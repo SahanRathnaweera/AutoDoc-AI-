@@ -13,6 +13,8 @@ import 'package:autodoc_ai/features/authentication/domain/usecases/observe_auth_
 import 'package:autodoc_ai/features/authentication/domain/usecases/register_user.dart';
 import 'package:autodoc_ai/features/authentication/domain/usecases/reset_password.dart';
 import 'package:autodoc_ai/features/authentication/domain/usecases/send_email_verification.dart';
+import 'package:autodoc_ai/features/authentication/domain/usecases/send_phone_otp.dart';
+import 'package:autodoc_ai/features/authentication/domain/usecases/verify_phone_otp.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -26,6 +28,8 @@ void main() {
   late ResetPassword resetPassword;
   late SendEmailVerification sendEmailVerification;
   late GetIdToken getIdToken;
+  late SendPhoneOtp sendPhoneOtp;
+  late VerifyPhoneOtp verifyPhoneOtp;
 
   const tUser = UserEntity(
     uid: 'test_uid_1',
@@ -43,6 +47,8 @@ void main() {
     resetPassword = ResetPassword(mockAuthRepository);
     sendEmailVerification = SendEmailVerification(mockAuthRepository);
     getIdToken = GetIdToken(mockAuthRepository);
+    sendPhoneOtp = SendPhoneOtp(mockAuthRepository);
+    verifyPhoneOtp = VerifyPhoneOtp(mockAuthRepository);
   });
 
   group('LoginUser', () {
@@ -103,6 +109,62 @@ void main() {
             password: 'Password123!',
             displayName: 'Client Name',
             phoneNumber: '+123456789',
+            role: 'client',
+          )).called(1);
+    });
+  });
+
+  group('SendPhoneOtp', () {
+    test('should delegate phone verification to repository', () async {
+      when(() => mockAuthRepository.verifyPhoneNumber(
+            phoneNumber: '+94712345678',
+            onCodeSent: any(named: 'onCodeSent'),
+            onVerificationFailed: any(named: 'onVerificationFailed'),
+            onVerificationCompleted: any(named: 'onVerificationCompleted'),
+            onCodeAutoRetrievalTimeout: any(named: 'onCodeAutoRetrievalTimeout'),
+            forceResendingToken: null,
+            timeout: any(named: 'timeout'),
+          )).thenAnswer((_) async => const Right(null));
+
+      final result = await sendPhoneOtp(SendPhoneOtpParams(
+        phoneNumber: '+94712345678',
+        onCodeSent: (_, __) {},
+        onVerificationFailed: (_) {},
+      ));
+
+      expect(result, const Right(null));
+      verify(() => mockAuthRepository.verifyPhoneNumber(
+            phoneNumber: '+94712345678',
+            onCodeSent: any(named: 'onCodeSent'),
+            onVerificationFailed: any(named: 'onVerificationFailed'),
+            onVerificationCompleted: any(named: 'onVerificationCompleted'),
+            onCodeAutoRetrievalTimeout: any(named: 'onCodeAutoRetrievalTimeout'),
+            forceResendingToken: null,
+            timeout: any(named: 'timeout'),
+          )).called(1);
+    });
+  });
+
+  group('VerifyPhoneOtp', () {
+    test('should delegate otp verification to repository and return user', () async {
+      when(() => mockAuthRepository.verifyPhoneOtp(
+            verificationId: 'v123',
+            smsCode: '123456',
+            displayName: 'Phone User',
+            role: 'client',
+          )).thenAnswer((_) async => const Right(tUser));
+
+      final result = await verifyPhoneOtp(const VerifyPhoneOtpParams(
+        verificationId: 'v123',
+        smsCode: '123456',
+        displayName: 'Phone User',
+      ));
+
+      expect(result, const Right(tUser));
+      verify(() => mockAuthRepository.verifyPhoneOtp(
+            verificationId: 'v123',
+            smsCode: '123456',
+            displayName: 'Phone User',
             role: 'client',
           )).called(1);
     });
