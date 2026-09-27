@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
-import 'package:autodoc_ai/core/constants/storage_paths.dart';
+import 'package:autodoc_ai/core/firebase/storage_paths.dart';
 import 'package:autodoc_ai/core/error/exceptions.dart';
 import 'package:autodoc_ai/core/error/failures.dart';
 import 'package:autodoc_ai/core/storage/storage_validator.dart';
@@ -55,7 +55,7 @@ class StorageRepositoryImpl implements StorageRepository {
   Future<Either<Failure, UploadResultEntity>> uploadUserProfilePhoto({required String userId, required File file, required String fileName}) async {
     try {
       final contentType = StorageValidator.validateImage(file);
-      final storagePath = StoragePaths.userAvatar(userId, fileName);
+      final storagePath = StoragePaths.userProfile(userId, fileName);
       final downloadUrl = await _remoteDataSource.uploadFile(storagePath: storagePath, file: file, contentType: contentType);
       return Right(UploadResultEntity(storagePath: storagePath, downloadUrl: downloadUrl, contentType: contentType, sizeBytes: file.lengthSync(), uploadedAt: DateTime.now()));
     } catch (e) {

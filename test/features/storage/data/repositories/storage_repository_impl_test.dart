@@ -78,7 +78,7 @@ void main() {
             storagePath: any(named: 'storagePath'),
             file: any(named: 'file'),
             contentType: any(named: 'contentType'),
-          )).thenThrow(const StorageException('Quota exceeded', code: 'quota-exceeded'));
+          )).thenThrow(StorageException('Quota exceeded', code: 'quota-exceeded'));
 
       final result = await repository.uploadVehiclePhoto(
         vehicleId: 'veh_01',

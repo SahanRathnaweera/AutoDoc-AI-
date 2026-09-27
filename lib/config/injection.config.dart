@@ -85,35 +85,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i582.FirebaseTokenProvider>(
       () => _i582.FirebaseTokenProvider(gh<_i59.FirebaseAuth>()),
     );
-    gh.lazySingleton<_i68.StorageRemoteDataSource>(
-      () => _i68.StorageRemoteDataSourceImpl(gh<InvalidType>()),
-    );
-    gh.lazySingleton<_i151.StorageRepository>(
-      () => _i426.StorageRepositoryImpl(gh<_i68.StorageRemoteDataSource>()),
-    );
     gh.lazySingleton<_i716.AuthRepository>(
       () => _i781.AuthRepositoryImpl(gh<_i299.AuthRemoteDataSource>()),
     );
-    gh.lazySingleton<_i409.DeleteStorageFile>(
-      () => _i409.DeleteStorageFile(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i717.GetStorageDownloadUrl>(
-      () => _i717.GetStorageDownloadUrl(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i580.UploadInspectionAudio>(
-      () => _i580.UploadInspectionAudio(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i937.UploadInspectionPhoto>(
-      () => _i937.UploadInspectionPhoto(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i567.UploadUserProfilePhoto>(
-      () => _i567.UploadUserProfilePhoto(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i679.UploadVehicleDocument>(
-      () => _i679.UploadVehicleDocument(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i130.UploadVehiclePhoto>(
-      () => _i130.UploadVehiclePhoto(gh<_i151.StorageRepository>()),
+    gh.lazySingleton<_i68.StorageRemoteDataSource>(
+      () =>
+          _i68.StorageRemoteDataSourceImpl(gh<_i301.FirebaseStorageService>()),
     );
     gh.lazySingleton<_i518.GetCurrentUser>(
       () => _i518.GetCurrentUser(gh<_i716.AuthRepository>()),
@@ -138,6 +115,30 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i763.SendEmailVerification>(
       () => _i763.SendEmailVerification(gh<_i716.AuthRepository>()),
+    );
+    gh.lazySingleton<_i151.StorageRepository>(
+      () => _i426.StorageRepositoryImpl(gh<_i68.StorageRemoteDataSource>()),
+    );
+    gh.lazySingleton<_i409.DeleteStorageFile>(
+      () => _i409.DeleteStorageFile(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i717.GetStorageDownloadUrl>(
+      () => _i717.GetStorageDownloadUrl(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i580.UploadInspectionAudio>(
+      () => _i580.UploadInspectionAudio(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i937.UploadInspectionPhoto>(
+      () => _i937.UploadInspectionPhoto(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i567.UploadUserProfilePhoto>(
+      () => _i567.UploadUserProfilePhoto(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i679.UploadVehicleDocument>(
+      () => _i679.UploadVehicleDocument(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i130.UploadVehiclePhoto>(
+      () => _i130.UploadVehiclePhoto(gh<_i151.StorageRepository>()),
     );
     return this;
   }

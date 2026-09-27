@@ -58,7 +58,7 @@ class StorageValidator {
 
   static void _ensureFileExists(File file) {
     if (!file.existsSync()) {
-      throw const StorageException('File does not exist at local path', code: 'object-not-found');
+      throw StorageException('File does not exist at local path', code: 'object-not-found');
     }
   }
 
