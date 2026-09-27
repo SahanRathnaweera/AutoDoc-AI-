@@ -1,15 +1,8 @@
-// File generated as template for AutoDoc AI Firebase integration.
-// Run `flutterfire configure` to generate production credentials.
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Default [FirebaseOptions] for use with your Firebase apps.
-///
-/// When connecting to your production Firebase project, run:
-/// ```bash
-/// flutterfire configure
-/// ```
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -36,47 +29,54 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSy-PLACEHOLDER-WEB-API-KEY',
-    appId: '1:1234567890:web:abcdef123456',
-    messagingSenderId: '1234567890',
-    projectId: 'autodoc-ai',
-    authDomain: 'autodoc-ai.firebaseapp.com',
-    storageBucket: 'autodoc-ai.appspot.com',
+  static String _env(String key, [String fallback = '']) {
+    if (dotenv.isInitialized && dotenv.env[key] != null && dotenv.env[key]!.isNotEmpty) {
+      return dotenv.env[key]!;
+    }
+    return String.fromEnvironment(key, defaultValue: fallback);
+  }
+
+  static FirebaseOptions get web => FirebaseOptions(
+    apiKey: _env('FIREBASE_WEB_API_KEY'),
+    appId: _env('FIREBASE_WEB_APP_ID'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
+    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
+    authDomain: _env('FIREBASE_AUTH_DOMAIN', 'autodoc-ai-89790.firebaseapp.com'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSy-PLACEHOLDER-ANDROID-API-KEY',
-    appId: '1:1234567890:android:abcdef123456',
-    messagingSenderId: '1234567890',
-    projectId: 'autodoc-ai',
-    storageBucket: 'autodoc-ai.appspot.com',
+  static FirebaseOptions get android => FirebaseOptions(
+    apiKey: _env('FIREBASE_ANDROID_API_KEY'),
+    appId: _env('FIREBASE_ANDROID_APP_ID'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
+    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSy-PLACEHOLDER-IOS-API-KEY',
-    appId: '1:1234567890:ios:abcdef123456',
-    messagingSenderId: '1234567890',
-    projectId: 'autodoc-ai',
-    storageBucket: 'autodoc-ai.appspot.com',
-    iosBundleId: 'com.example.autodocAi',
+  static FirebaseOptions get ios => FirebaseOptions(
+    apiKey: _env('FIREBASE_IOS_API_KEY'),
+    appId: _env('FIREBASE_IOS_APP_ID'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
+    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
+    iosBundleId: _env('FIREBASE_IOS_BUNDLE_ID', 'com.example.autodocAi'),
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSy-PLACEHOLDER-MACOS-API-KEY',
-    appId: '1:1234567890:ios:abcdef123456',
-    messagingSenderId: '1234567890',
-    projectId: 'autodoc-ai',
-    storageBucket: 'autodoc-ai.appspot.com',
-    iosBundleId: 'com.example.autodocAi',
+  static FirebaseOptions get macos => FirebaseOptions(
+    apiKey: _env('FIREBASE_IOS_API_KEY'),
+    appId: _env('FIREBASE_IOS_APP_ID'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
+    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
+    iosBundleId: _env('FIREBASE_IOS_BUNDLE_ID', 'com.example.autodocAi'),
   );
 
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSy-PLACEHOLDER-WINDOWS-API-KEY',
-    appId: '1:1234567890:web:abcdef123456',
-    messagingSenderId: '1234567890',
-    projectId: 'autodoc-ai',
-    authDomain: 'autodoc-ai.firebaseapp.com',
-    storageBucket: 'autodoc-ai.appspot.com',
+  static FirebaseOptions get windows => FirebaseOptions(
+    apiKey: _env('FIREBASE_WEB_API_KEY'),
+    appId: _env('FIREBASE_WINDOWS_APP_ID'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
+    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
+    authDomain: _env('FIREBASE_AUTH_DOMAIN', 'autodoc-ai-89790.firebaseapp.com'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
   );
 }

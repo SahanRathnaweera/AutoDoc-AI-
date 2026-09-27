@@ -61,3 +61,10 @@ macos/Runner/GoogleService-Info.plist
 .dartServer/
 .sudo_as_admin_successful
 .gitconfig
+.env
+*.env
+!.env.example
+
+.env
+*.env
+!.env.example

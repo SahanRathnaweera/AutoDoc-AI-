@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'config/injection.dart';
 import 'core/firebase/firebase_initializer.dart';
@@ -6,8 +7,11 @@ import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FirebaseInitializer.initialize();
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {}
   await configureDependencies();
+  await FirebaseInitializer.initialize();
   runApp(const AutoDocApp());
 }
 
