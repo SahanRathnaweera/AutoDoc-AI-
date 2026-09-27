@@ -29,54 +29,54 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static String _env(String key, [String fallback = '']) {
+  static String _env(String key) {
     if (dotenv.isInitialized && dotenv.env[key] != null && dotenv.env[key]!.isNotEmpty) {
       return dotenv.env[key]!;
     }
-    return String.fromEnvironment(key, defaultValue: fallback);
+    return String.fromEnvironment(key, defaultValue: '');
   }
 
   static FirebaseOptions get web => FirebaseOptions(
     apiKey: _env('FIREBASE_WEB_API_KEY'),
     appId: _env('FIREBASE_WEB_APP_ID'),
-    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
-    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
-    authDomain: _env('FIREBASE_AUTH_DOMAIN', 'autodoc-ai-89790.firebaseapp.com'),
-    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_PROJECT_ID'),
+    authDomain: _env('FIREBASE_AUTH_DOMAIN'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET'),
   );
 
   static FirebaseOptions get android => FirebaseOptions(
     apiKey: _env('FIREBASE_ANDROID_API_KEY'),
     appId: _env('FIREBASE_ANDROID_APP_ID'),
-    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
-    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
-    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_PROJECT_ID'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET'),
   );
 
   static FirebaseOptions get ios => FirebaseOptions(
     apiKey: _env('FIREBASE_IOS_API_KEY'),
     appId: _env('FIREBASE_IOS_APP_ID'),
-    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
-    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
-    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
-    iosBundleId: _env('FIREBASE_IOS_BUNDLE_ID', 'com.example.autodocAi'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_PROJECT_ID'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET'),
+    iosBundleId: _env('FIREBASE_IOS_BUNDLE_ID'),
   );
 
   static FirebaseOptions get macos => FirebaseOptions(
     apiKey: _env('FIREBASE_IOS_API_KEY'),
     appId: _env('FIREBASE_IOS_APP_ID'),
-    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
-    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
-    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
-    iosBundleId: _env('FIREBASE_IOS_BUNDLE_ID', 'com.example.autodocAi'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_PROJECT_ID'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET'),
+    iosBundleId: _env('FIREBASE_IOS_BUNDLE_ID'),
   );
 
   static FirebaseOptions get windows => FirebaseOptions(
     apiKey: _env('FIREBASE_WEB_API_KEY'),
     appId: _env('FIREBASE_WINDOWS_APP_ID'),
-    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID', '853439919740'),
-    projectId: _env('FIREBASE_PROJECT_ID', 'autodoc-ai-89790'),
-    authDomain: _env('FIREBASE_AUTH_DOMAIN', 'autodoc-ai-89790.firebaseapp.com'),
-    storageBucket: _env('FIREBASE_STORAGE_BUCKET', 'autodoc-ai-89790.firebasestorage.app'),
+    messagingSenderId: _env('FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_PROJECT_ID'),
+    authDomain: _env('FIREBASE_AUTH_DOMAIN'),
+    storageBucket: _env('FIREBASE_STORAGE_BUCKET'),
   );
 }
