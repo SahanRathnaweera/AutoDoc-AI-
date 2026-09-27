@@ -18,7 +18,7 @@ import 'package:autodoc_ai/features/authentication/domain/usecases/verify_phone_
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
-void main() {
+void main() { setUpAll(() { registerFallbackValue(const Duration(seconds: 30)); });
   late MockAuthRepository mockAuthRepository;
   late LoginUser loginUser;
   late RegisterUser registerUser;

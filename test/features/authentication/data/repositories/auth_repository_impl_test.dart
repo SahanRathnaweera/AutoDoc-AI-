@@ -9,7 +9,7 @@ import 'package:autodoc_ai/features/authentication/data/repositories/auth_reposi
 
 class MockAuthRemoteDataSource extends Mock implements AuthRemoteDataSource {}
 
-void main() {
+void main() { setUpAll(() { registerFallbackValue(const Duration(seconds: 30)); });
   late MockAuthRemoteDataSource mockRemoteDataSource;
   late AuthRepositoryImpl repository;
 
