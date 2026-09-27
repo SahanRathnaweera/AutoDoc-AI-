@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'config/injection.dart';
+import 'core/firebase/firebase_initializer.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseInitializer.initialize();
   await configureDependencies();
   runApp(const AutoDocApp());
 }
