@@ -39,6 +39,15 @@ void main() {
 
       const tooManyReq = TooManyRequestsFailure();
       expect(tooManyReq.code, equals('too-many-requests'));
+
+      const invalidOtp = InvalidOtpFailure();
+      expect(invalidOtp.code, equals('invalid-verification-code'));
+
+      const otpTimeout = OtpTimeoutFailure();
+      expect(otpTimeout.code, equals('session-expired'));
+
+      const quotaExceeded = PhoneAuthQuotaExceededFailure();
+      expect(quotaExceeded.code, equals('quota-exceeded'));
     });
 
     test('FirestoreFailure and StorageFailure support custom codes', () {

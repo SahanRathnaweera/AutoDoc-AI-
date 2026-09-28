@@ -2,7 +2,6 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:autodoc_ai/core/error/exceptions.dart';
 import 'package:autodoc_ai/core/error/failures.dart';
-import 'package:autodoc_ai/core/utils/app_logger.dart';
 import 'package:autodoc_ai/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:autodoc_ai/features/authentication/domain/entities/user_entity.dart';
 import 'package:autodoc_ai/features/authentication/domain/repositories/auth_repository.dart';
@@ -14,6 +13,24 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._remoteDataSource);
 
   @override
+  Future<Either<Failure, UserEntity>> loginWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final userModel = await _remoteDataSource.loginWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return Right(userModel);
+    } on AuthException catch (e) {
+      return Left(_mapAuthExceptionToFailure(e));
+    } catch (e) {
+      return Left(AuthFailure('Unexpected login failure: $e'));
+    }
+  }
+
+  @override
   Future<Either<Failure, UserEntity>> registerWithEmailAndPassword({
     required String email,
     required String password,
@@ -22,42 +39,18 @@ class AuthRepositoryImpl implements AuthRepository {
     String role = 'client',
   }) async {
     try {
-      final user = await _remoteDataSource.registerWithEmailAndPassword(
+      final userModel = await _remoteDataSource.registerWithEmailAndPassword(
         email: email,
         password: password,
         displayName: displayName,
         phoneNumber: phoneNumber,
         role: role,
       );
-      return Right(user);
+      return Right(userModel);
     } on AuthException catch (e) {
       return Left(_mapAuthExceptionToFailure(e));
-    } on NetworkException catch (e) {
-      return Left(NetworkFailure(e.message));
-    } catch (e, stackTrace) {
-      AppLogger.error('Unexpected error in registerWithEmailAndPassword', e, stackTrace);
-      return Left(ServerFailure('Failed to register user: $e'));
-    }
-  }
-
-  @override
-  Future<Either<Failure, UserEntity>> loginWithEmailAndPassword({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      final user = await _remoteDataSource.loginWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return Right(user);
-    } on AuthException catch (e) {
-      return Left(_mapAuthExceptionToFailure(e));
-    } on NetworkException catch (e) {
-      return Left(NetworkFailure(e.message));
-    } catch (e, stackTrace) {
-      AppLogger.error('Unexpected error in loginWithEmailAndPassword', e, stackTrace);
-      return Left(ServerFailure('Failed to login: $e'));
+    } catch (e) {
+      return Left(AuthFailure('Unexpected registration failure: $e'));
     }
   }
 
@@ -68,9 +61,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Right(null);
     } on AuthException catch (e) {
       return Left(_mapAuthExceptionToFailure(e));
-    } catch (e, stackTrace) {
-      AppLogger.error('Unexpected error in logout', e, stackTrace);
-      return Left(ServerFailure('Failed to logout: $e'));
+    } catch (e) {
+      return Left(AuthFailure('Unexpected logout failure: $e'));
     }
   }
 
@@ -81,9 +73,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(user);
     } on AuthException catch (e) {
       return Left(_mapAuthExceptionToFailure(e));
-    } catch (e, stackTrace) {
-      AppLogger.error('Unexpected error in getCurrentUser', e, stackTrace);
-      return Left(ServerFailure('Failed to get current user: $e'));
+    } catch (e) {
+      return Left(AuthFailure('Unexpected failure retrieving user: $e'));
     }
   }
 
@@ -99,9 +90,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Right(null);
     } on AuthException catch (e) {
       return Left(_mapAuthExceptionToFailure(e));
-    } catch (e, stackTrace) {
-      AppLogger.error('Unexpected error in sendPasswordResetEmail', e, stackTrace);
-      return Left(ServerFailure('Failed to send password reset: $e'));
+    } catch (e) {
+      return Left(AuthFailure('Unexpected password reset failure: $e'));
     }
   }
 
@@ -112,9 +102,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Right(null);
     } on AuthException catch (e) {
       return Left(_mapAuthExceptionToFailure(e));
-    } catch (e, stackTrace) {
-      AppLogger.error('Unexpected error in sendEmailVerification', e, stackTrace);
-      return Left(ServerFailure('Failed to send verification email: $e'));
+    } catch (e) {
+      return Left(AuthFailure('Unexpected verification email failure: $e'));
     }
   }
 
@@ -125,31 +114,86 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(token);
     } on AuthException catch (e) {
       return Left(_mapAuthExceptionToFailure(e));
-    } catch (e, stackTrace) {
-      AppLogger.error('Unexpected error in getIdToken', e, stackTrace);
-      return Left(ServerFailure('Failed to get ID token: $e'));
+    } catch (e) {
+      return Left(AuthFailure('Unexpected ID token retrieval failure: $e'));
     }
   }
 
-  Failure _mapAuthExceptionToFailure(AuthException e) {
-    switch (e.code) {
+  @override
+  Future<Either<Failure, void>> verifyPhoneNumber({
+    required String phoneNumber,
+    required void Function(String verificationId, int? resendToken) onCodeSent,
+    required void Function(AuthFailure failure) onVerificationFailed,
+    void Function(UserEntity user)? onVerificationCompleted,
+    void Function(String verificationId)? onCodeAutoRetrievalTimeout,
+    int? forceResendingToken,
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    try {
+      await _remoteDataSource.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        onCodeSent: onCodeSent,
+        onVerificationFailed: (exception) {
+          onVerificationFailed(_mapAuthExceptionToFailure(exception));
+        },
+        onVerificationCompleted: onVerificationCompleted != null
+            ? (credential) async {
+                final user = await _remoteDataSource.getCurrentUser();
+                if (user != null) onVerificationCompleted(user);
+              }
+            : null,
+        onCodeAutoRetrievalTimeout: onCodeAutoRetrievalTimeout,
+        forceResendingToken: forceResendingToken,
+        timeout: timeout,
+      );
+      return const Right(null);
+    } on AuthException catch (e) {
+      return Left(_mapAuthExceptionToFailure(e));
+    } catch (e) {
+      return Left(AuthFailure('Unexpected phone verification failure: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> verifyPhoneOtp({
+    required String verificationId,
+    required String smsCode,
+    String? displayName,
+    String role = 'client',
+  }) async {
+    try {
+      final userModel = await _remoteDataSource.signInWithOtp(
+        verificationId: verificationId,
+        smsCode: smsCode,
+        displayName: displayName,
+        role: role,
+      );
+      return Right(userModel);
+    } on AuthException catch (e) {
+      return Left(_mapAuthExceptionToFailure(e));
+    } catch (e) {
+      return Left(AuthFailure('Unexpected OTP verification failure: $e'));
+    }
+  }
+
+  AuthFailure _mapAuthExceptionToFailure(AuthException exception) {
+    switch (exception.code) {
+      case 'invalid-verification-code':
+        return InvalidOtpFailure(exception.message, exception.code);
+      case 'session-expired':
+        return OtpTimeoutFailure(exception.message, exception.code);
+      case 'quota-exceeded':
+        return PhoneAuthQuotaExceededFailure(exception.message, exception.code);
       case 'invalid-credential':
-      case 'wrong-password':
-        return InvalidCredentialsFailure(e.message, e.code);
+        return InvalidCredentialsFailure(exception.message, exception.code);
       case 'user-not-found':
-        return UserNotFoundFailure(e.message, e.code);
+        return UserNotFoundFailure(exception.message, exception.code);
       case 'email-already-in-use':
-        return EmailAlreadyInUseFailure(e.message, e.code);
+        return EmailAlreadyInUseFailure(exception.message, exception.code);
       case 'weak-password':
-        return WeakPasswordFailure(e.message, e.code);
-      case 'user-disabled':
-        return UserDisabledFailure(e.message, e.code);
-      case 'too-many-requests':
-        return TooManyRequestsFailure(e.message, e.code);
-      case 'network-request-failed':
-        return NetworkFailure(e.message);
+        return WeakPasswordFailure(exception.message, exception.code);
       default:
-        return AuthFailure(e.message, e.code);
+        return AuthFailure(exception.message, exception.code);
     }
   }
 }
