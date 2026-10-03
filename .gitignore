@@ -68,3 +68,32 @@ macos/Runner/GoogleService-Info.plist
 .env
 *.env
 !.env.example
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+.env
+.env.*
+!.env.example
+*service-account*.json
+
+
+uploads/
+runs/
+*.log
+# Local environment secrets
+.env
+.env.*
+!.env.example
+
+# Backend local files and training artifacts
+/backend/.venv/
+/backend/**/__pycache__/
+/backend/**/*.pyc
+/backend/**/*.bak
+/backend/data/
+/backend/models/
+/backend/runs/
+/backend/**/*.zip

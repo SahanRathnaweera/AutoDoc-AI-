@@ -1,0 +1,7 @@
+path,label,vehicle_id,split
+data/raw/audio/car/car001.wav,normal,car001,train
+data/raw/audio/car/car002.wav,abnormal,car002,train
+data/raw/audio/car/car003.wav,normal,car003,val
+data/raw/audio/car/car004.wav,abnormal,car004,val
+data/raw/audio/car/car005.wav,normal,car005,test
+data/raw/audio/car/car006.wav,abnormal,car006,test
