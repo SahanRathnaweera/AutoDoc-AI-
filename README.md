@@ -1,62 +1,131 @@
 # 🚗 AutoDoc AI
 
-An AI-powered automated vehicle inspection system featuring 360° visual damage detection, engine sound audio diagnostics, and verified PDF report generation.
+AutoDoc AI is a Flutter-based vehicle inspection application concept focused on AI-assisted damage assessment, diagnostics, and report generation. The current repository is the foundational app shell for a clean-architecture Flutter project, including routing, dependency injection, and a ready-to-expand structure.
 
 ---
 
-## 📌 Features
+## ✨ Core Idea
 
-* **360° Visual Damage Detection:** AI-driven image analysis for vehicle exterior inspection.
-* **Engine Audio Diagnostics:** Audio processing to identify engine anomalies.
-* **Automated PDF Reports:** Quick generation of verified inspection summaries.
-* **Clean Architecture:** Scalable codebase strictly separated into Data, Domain, and Presentation layers.
+The long-term goal is to build a complete inspection workflow that can:
 
----
-
-## 🛠️ Tech Stack & Architecture
-
-* **Framework:** [Flutter](https://flutter.dev/) (Dart)
-* **Architecture:** Clean Architecture
-* **State Management:** BLoC / Riverpod
-* **Routing:** [GoRouter](https://pub.dev/packages/go_router)
-* **Dependency Injection:** [GetIt](https://pub.dev/packages/get_it) & [Injectable](https://pub.dev/packages/injectable)
+- detect visual damage from vehicle images,
+- analyze engine audio for abnormal sounds,
+- generate structured inspection reports,
+- and present the results through a clean mobile app experience.
 
 ---
 
-## 📂 Project Structure
+## 📌 Current Project Status
+
+This repository currently contains the starter foundation for the app, including:
+
+- Flutter app bootstrap
+- GoRouter-based navigation
+- GetIt dependency injection setup
+- a clean architecture-ready folder structure
+- base project configuration for future feature development
+
+---
+
+## 🛠️ Tech Stack
+
+- Framework: [Flutter](https://flutter.dev/)
+- Language: Dart
+- Routing: [GoRouter](https://pub.dev/packages/go_router)
+- Dependency Injection: [GetIt](https://pub.dev/packages/get_it)
+- Code Generation: [Injectable](https://pub.dev/packages/injectable)
+- State Management: [flutter_bloc](https://pub.dev/packages/flutter_bloc)
+- Functional utilities: [dartz](https://pub.dev/packages/dartz)
+
+---
+
+## 📁 Project Structure
 
 ```text
-lib/
-├── config/             # App configuration & Dependency Injection
-├── core/               # Shared utilities, router, themes, network & errors
-│   ├── constants/
-│   ├── error/
-│   ├── network/
-│   ├── router/
-│   ├── theme/
-│   └── utils/
-└── features/           # Feature-based modules (Clean Architecture)
-    └── sample_feature/
-        ├── data/       # Models, Repositories Implementation, Data Sources
-        ├── domain/     # Entities, Use Cases, Repository Interfaces
-        └── presentation/ # BLoC/Cubit, Screens, Widgets
+AutoDoc-AI-
+├── android/
+├── ios/
+├── lib/
+│   ├── config/
+│   │   └── injection.dart
+│   ├── core/
+│   │   ├── error/
+│   │   ├── router/
+│   │   │   └── app_router.dart
+│   │   └── utils/
+│   ├── main.dart
+│   └── ... future feature modules
+├── test/
+├── web/
+├── windows/
+├── analysis_options.yaml
+├── pubspec.yaml
+├── README.md
+└── .gitignore
+```
+
+---
 
 ## 🚀 Getting Started
-Prerequisites
-## Ensure you have the following installed: Flutter SDK, Git
-## Clone the repository: git clone [https://github.com/SahanRathnaweera/AutoDoc-AI-.git](https://github.com/SahanRathnaweera/AutoDoc-AI-.git)
+
+### Prerequisites
+
+Make sure you have the following installed:
+
+- Flutter SDK
+- Git
+- An IDE such as VS Code or Android Studio
+
+### Install and run
+
+```bash
+git clone https://github.com/SahanRathnaweera/AutoDoc-AI-.git
 cd AutoDoc-AI-
-## Get dependencies: flutter pub get
-## Run code generation (if applicable): flutter pub run build_runner build --delete-conflicting-outputs
-## Run the application: flutter run
+flutter pub get
+flutter run
+```
 
-## 🌿 Git Branching Strategy
-## main: Production-ready stable code.
-## dev: Active development branch.
-## feature/<feature-name>: Individual feature branches created from dev.
+### Optional code generation
 
-Workflow for Contributors
-## Pull the latest dev branch: git checkout dev && git pull origin dev
-## Create your feature branch: git checkout -b feature/your-feature-name
-## Commit and push your changes.
-## Open a Pull Request (PR) targeting the dev branch for code review.
+If more generated files are introduced later, run:
+
+```bash
+flutter pub run build_runner build --delete-conflicting-outputs
+```
+
+---
+
+## 🌿 Suggested Git Workflow
+
+- main: production-ready stable branch
+- dev: active development branch
+- feature/<feature-name>: feature-specific work branches
+
+Typical workflow:
+
+```bash
+git checkout dev
+git pull origin dev
+git checkout -b feature/your-feature-name
+```
+
+Then commit, push, and open a pull request targeting the dev branch.
+
+---
+
+## 🧩 Roadmap
+
+Planned evolution of this project includes:
+
+- vehicle image capture and upload flow,
+- AI-powered damage classification,
+- audio diagnostics integration,
+- PDF report export,
+- authentication and inspection history,
+- production-ready architecture and testing coverage.
+
+---
+
+## 📘 Notes
+
+This project is currently a structured starter and not yet a finished AI inspection product. The base app shell is ready for feature development and follows a scalable Flutter architecture foundation.
