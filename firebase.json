@@ -1,0 +1,32 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "autodoc-ai-89790",
+          "appId": "1:853439919740:android:9c86409bcca3ac6e4a7bf9",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "autodoc-ai-89790",
+          "configurations": {
+            "android": "1:853439919740:android:9c86409bcca3ac6e4a7bf9",
+            "ios": "1:853439919740:ios:b8571f9dca4d34f14a7bf9",
+            "macos": "1:853439919740:ios:b8571f9dca4d34f14a7bf9",
+            "web": "1:853439919740:web:ef515b39c3c5a0144a7bf9",
+            "windows": "1:853439919740:web:626fdffd3b0e7f3d4a7bf9"
+          }
+        }
+      }
+    }
+  }
+}
