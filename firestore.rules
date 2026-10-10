@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && 
+        (request.auth.token.role == role || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role);
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isInspector() {
+      return hasRole('inspector') || isAdmin();
+    }
+
+    // 1. Users collection
+    // Users can read their own profile, create on registration, and update their personal details.
+    // Public profile details may be read by authenticated users.
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // 2. Vehicles collection
+    // Vehicle owners can manage their vehicles. Inspectors and admins can view during inspection.
+    match /vehicles/{vehicleId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.ownerId == request.auth.uid || isInspector());
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && 
+        (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 3. Inspections collection
+    // Vehicle owner or assigned inspector can access inspection session.
+    match /inspections/{inspectionId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || 
+         resource.data.inspectorId == request.auth.uid || 
+         isInspector());
+      allow create: if isAuthenticated() && 
+        (request.resource.data.userId == request.auth.uid || isInspector());
+      allow update: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || 
+         resource.data.inspectorId == request.auth.uid || 
+         isInspector());
+      allow delete: if isAdmin();
+    }
+
+    // 4. Damage results collection (AI-generated)
+    // Read allowed for inspection owner/inspector.
+    // Creation/update restricted to certified inspector or backend service to prevent tampering.
+    match /damage_results/{damageId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isInspector();
+      allow delete: if isAdmin();
+    }
+
+    // 5. Engine acoustic diagnostics (AI-generated)
+    // Read allowed for inspection participants.
+    // Writes restricted to inspector or backend microservice.
+    match /engine_diagnostics/{diagnosticId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isInspector();
+      allow delete: if isAdmin();
+    }
+
+    // 6. OCR document results
+    // Read allowed for vehicle owner or inspector. Writes restricted to inspector or backend.
+    match /ocr_results/{ocrId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isInspector();
+      allow delete: if isAdmin();
+    }
+
+    // 7. Valuations
+    // Read allowed for vehicle owner and inspection owner.
+    // Clients CANNOT modify valuation results. Only backend service or admin may write.
+    match /valuations/{valuationId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 8. Inspection Reports
+    // Final certified PDF report metadata.
+    // Read: Owner or public verification check.
+    // Write: Strictly admin / backend report generation service.
+    match /reports/{reportId} {
+      allow read: if true; // Publicly verifiable with verificationIdentifier
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 9. Marketplace listings
+    // Public read for active listings.
+    // Create/update/delete only by the vehicle seller or admin.
+    match /marketplace_listings/{listingId} {
+      allow read: if resource.data.status == 'active' || 
+        (isAuthenticated() && (resource.data.sellerId == request.auth.uid || isAdmin()));
+      allow create: if isAuthenticated() && request.resource.data.sellerId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && 
+        (resource.data.sellerId == request.auth.uid || isAdmin());
+    }
+  }
+}

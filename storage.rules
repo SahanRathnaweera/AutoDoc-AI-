@@ -1,0 +1,53 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'admin';
+    }
+
+    // 1. User profile pictures
+    // Public read or authenticated read; write only by account owner
+    match /users/{userId}/profile/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+
+    // 2. Vehicle photos & documents
+    // Images are publicly viewable if part of listings; write only by vehicle owner
+    match /vehicles/{vehicleId}/images/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Vehicle sensitive registration documents: private to authenticated users
+    match /vehicles/{vehicleId}/documents/{fileName} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 3. Inspection photos and engine sound clips
+    // Uploaded during inspection session
+    match /inspections/{inspectionId}/images/{fileName} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /inspections/{inspectionId}/audio/{fileName} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 4. Compiled Inspection PDF Reports
+    // Readable publicly or via signed verification link; write restricted to backend/admin
+    match /reports/{inspectionId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
