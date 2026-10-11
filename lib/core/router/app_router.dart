@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../ocr_screen.dart';
 
 import '../../features/auth/presentation/pages/auth_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
@@ -66,6 +67,10 @@ final GoRouter appRouter = GoRouter(
         appBar: AppBar(title: const Text('Profile')),
         body: const ProfilePage(),
       ),
+    ),
+    GoRoute(
+      path: '/ocr',
+      builder: (context, state) => const OcrScreen(),
     ),
     GoRoute(
       path: '/settings',
