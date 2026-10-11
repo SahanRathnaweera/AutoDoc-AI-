@@ -30,7 +30,9 @@ class DefaultFirebaseOptions {
   }
 
   static String _env(String key) {
-    if (dotenv.isInitialized && dotenv.env[key] != null && dotenv.env[key]!.isNotEmpty) {
+    if (dotenv.isInitialized &&
+        dotenv.env[key] != null &&
+        dotenv.env[key]!.isNotEmpty) {
       return dotenv.env[key]!;
     }
     return String.fromEnvironment(key, defaultValue: '');

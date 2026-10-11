@@ -84,7 +84,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> sendPasswordResetEmail({required String email}) async {
+  Future<Either<Failure, void>> sendPasswordResetEmail({
+    required String email,
+  }) async {
     try {
       await _remoteDataSource.sendPasswordResetEmail(email: email);
       return const Right(null);
@@ -108,9 +110,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, String>> getIdToken({bool forceRefresh = false}) async {
+  Future<Either<Failure, String>> getIdToken({
+    bool forceRefresh = false,
+  }) async {
     try {
-      final token = await _remoteDataSource.getIdToken(forceRefresh: forceRefresh);
+      final token = await _remoteDataSource.getIdToken(
+        forceRefresh: forceRefresh,
+      );
       return Right(token);
     } on AuthException catch (e) {
       return Left(_mapAuthExceptionToFailure(e));

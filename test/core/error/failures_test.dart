@@ -51,7 +51,10 @@ void main() {
     });
 
     test('FirestoreFailure and StorageFailure support custom codes', () {
-      const firestoreFailure = FirestoreFailure('Permission denied', 'permission-denied');
+      const firestoreFailure = FirestoreFailure(
+        'Permission denied',
+        'permission-denied',
+      );
       expect(firestoreFailure.code, equals('permission-denied'));
 
       const storageFailure = StorageFailure('Quota exceeded', 'quota-exceeded');
