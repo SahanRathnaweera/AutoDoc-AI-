@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+
 import 'vehicle_parser.dart';
+
 import 'dart:io';
 
 class OcrScreen extends StatefulWidget {
@@ -12,75 +14,67 @@ class OcrScreen extends StatefulWidget {
 }
 
 class _OcrScreenState extends State<OcrScreen> {
-
   final ImagePicker _picker = ImagePicker();
 
-  final TextRecognizer _textRecognizer =
-  TextRecognizer(script: TextRecognitionScript.latin);
+  final TextRecognizer _textRecognizer = TextRecognizer(
+    script: TextRecognitionScript.latin,
+  );
 
   String extractedText = '';
   bool isProcessing = false;
   String? scannedImagePath;
-  bool isSaved =false;
+  bool isSaved = false;
 
   VehicleData? vehicleData;
 
-
-  Widget _buildInfoRow(String label, String value, ValueChanged<String> onChanged,){
+  Widget _buildInfoRow(
+    String label,
+    String value,
+    ValueChanged<String> onChanged,
+  ) {
     return Container(
-      width:double.infinity,
-      margin: const EdgeInsets.only(bottom:12),
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.shade300,
-        ),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-        Text(
-        label,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Colors.grey,
-        ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextFormField(
+            initialValue: value,
+            onChanged: onChanged,
+
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              isDense: true,
+              hintText: 'Not detected',
+            ),
+          ),
+        ],
       ),
-      const SizedBox(height:6),
-      TextFormField(
-        initialValue: value,
-        onChanged: onChanged,
-
-        decoration: const InputDecoration(
-          border:OutlineInputBorder(),
-          isDense:true,
-          hintText: 'Not detected',
-        ),
-
-
-        ),
-
-      ],
-      ),
-
-
-
     );
-
   }
 
   Future<void> scanDocument() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.camera,
-    );
+    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
 
     if (image == null) {
       return;
     }
-    setState((){
+    setState(() {
       scannedImagePath = image.path;
     });
 
@@ -91,29 +85,23 @@ class _OcrScreenState extends State<OcrScreen> {
     setState(() {
       isProcessing = true;
       extractedText = '';
-      vehicleData =null;
-      isSaved=false;
-
+      vehicleData = null;
+      isSaved = false;
     });
 
     try {
       final inputImage = InputImage.fromFilePath(imagePath);
 
-      final RecognizedText recognizedText =
-      await _textRecognizer.processImage(inputImage);
-
-
-
-
-  
+      final RecognizedText recognizedText = await _textRecognizer.processImage(
+        inputImage,
+      );
 
       if (recognizedText.text.trim().isEmpty) {
-  setState(() {
-    extractedText =
-        'No text was detected. Please take a clearer photo of the document.';
-    vehicleData = null;
-  });
-} else {
+        setState(() {
+          extractedText = 'No text was detected. Please take a clearer photo of the document.';
+          vehicleData = null;
+        });
+      } else {
         final parsedData = VehicleParser.parse(recognizedText.text);
 
         setState(() {
@@ -125,7 +113,7 @@ class _OcrScreenState extends State<OcrScreen> {
       setState(() {
         extractedText = 'Unable to read the document. Please try again.';
         vehicleData = null;
-        scannedImagePath=null;
+        scannedImagePath = null;
       });
     } finally {
       setState(() {
@@ -144,120 +132,89 @@ class _OcrScreenState extends State<OcrScreen> {
     if (vehicleData == null) {
       return;
     }
-    if (vehicleData!.registrationNumber.trim().isEmpty){
+    if (vehicleData!.registrationNumber.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the registration number.'),
-        ),
+        const SnackBar(content: Text('Please enter the registration number.')),
       );
       return;
     }
 
-    if(vehicleData!.ownerName.trim().isEmpty){
+    if (vehicleData!.ownerName.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the owner name'),
-        ),
+        const SnackBar(content: Text('Please enter the owner name')),
       );
       return;
     }
 
-    if(vehicleData!.make.trim().isEmpty){
+    if (vehicleData!.make.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:Text ('Please enter the vehicle make'),
-        ),
+        const SnackBar(content: Text('Please enter the vehicle make')),
       );
       return;
     }
 
-    if (vehicleData!.model.trim().isEmpty){
+    if (vehicleData!.model.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:Text('Please enter the vehicle model.'),
-
-          ),
+        const SnackBar(content: Text('Please enter the vehicle model.')),
       );
       return;
     }
 
-    if (vehicleData!.chassisNumber.trim().isEmpty){
+    if (vehicleData!.chassisNumber.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:Text('Please enter the chassis number.'),
-
-        ),
+        const SnackBar(content: Text('Please enter the chassis number.')),
       );
       return;
     }
 
-    if (vehicleData!.engineNumber.trim().isEmpty){
+    if (vehicleData!.engineNumber.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:Text('Please enter the Engine Number.'),
-
-        ),
+        const SnackBar(content: Text('Please enter the Engine Number.')),
       );
       return;
     }
 
-    if (vehicleData!.registrationDate.trim().isEmpty){
+    if (vehicleData!.registrationDate.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:Text('Please enter the Registration Date.'),
-
-        ),
+        const SnackBar(content: Text('Please enter the Registration Date.')),
       );
       return;
     }
 
-    if (vehicleData!.expiryDate.trim().isEmpty){
+    if (vehicleData!.expiryDate.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:Text('Please enter the expiry date.'),
-
-        ),
+        const SnackBar(content: Text('Please enter the expiry date.')),
       );
       return;
     }
 
-    if (vehicleData!.engineCapacity.trim().isEmpty){
+    if (vehicleData!.engineCapacity.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:Text('Please enter the engine capacity.'),
-
-        ),
+        const SnackBar(content: Text('Please enter the engine capacity.')),
       );
       return;
     }
 
-    if (vehicleData!.modelYear.trim().isEmpty){
+    if (vehicleData!.modelYear.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:Text('Please enter the model year.'),
-
-        ),
+        const SnackBar(content: Text('Please enter the model year.')),
       );
       return;
     }
 
-    setState((){
-      isSaved =true;
+    setState(() {
+      isSaved = true;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Vehicle information saved successfully.'),
-      ),
+      const SnackBar(content: Text('Vehicle information saved successfully.')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vehicle Document OCR'),
-      ),
+      appBar: AppBar(title: const Text('Vehicle Document OCR')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -270,10 +227,7 @@ class _OcrScreenState extends State<OcrScreen> {
                 icon: const Icon(Icons.camera_alt),
                 label: const Text(
                   'Scan Vehicle Document',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -304,10 +258,7 @@ class _OcrScreenState extends State<OcrScreen> {
               const SizedBox(height: 12),
               const Text(
                 'Reading document...',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
               ),
             ],
 
@@ -321,12 +272,12 @@ class _OcrScreenState extends State<OcrScreen> {
                     const Text(
                       'OCR Result',
                       style: TextStyle(
-                        fontSize:20,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    const SizedBox(height:10),
+                    const SizedBox(height: 10),
 
                     Container(
                       width: double.infinity,
@@ -334,30 +285,22 @@ class _OcrScreenState extends State<OcrScreen> {
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.grey.shade300,
-                        ),
+                        border: Border.all(color: Colors.grey.shade300),
                       ),
                       child: Text(
                         extractedText.isEmpty
                             ? 'Scanned text will appear here.'
                             : extractedText,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          height: 1.5,
-                        ),
+                        style: const TextStyle(fontSize: 15, height: 1.5),
                       ),
                     ),
 
                     const SizedBox(height: 30),
 
-                    if(vehicleData!=null)...[
+                    if (vehicleData != null) ...[
                       Row(
                         children: [
-                          const Icon(
-                            Icons.directions_car,
-                            size: 24,
-                          ),
+                          const Icon(Icons.directions_car, size: 24),
                           const SizedBox(width: 8),
                           const Text(
                             'Vehicle Information',
@@ -369,52 +312,42 @@ class _OcrScreenState extends State<OcrScreen> {
                         ],
                       ),
 
-                      const SizedBox(height:15),
+                      const SizedBox(height: 15),
 
                       _buildInfoRow(
                         'Registration Number',
                         vehicleData!.registrationNumber,
-                            (value) {
+                        (value) {
                           setState(() {
                             vehicleData!.registrationNumber = value;
                           });
                         },
                       ),
 
-                      _buildInfoRow(
-                        'Owner Name',
-                        vehicleData!.ownerName,
-                            (value) {
-                          setState(() {
-                            vehicleData!.ownerName = value;
-                          });
-                        },
-                      ),
+                      _buildInfoRow('Owner Name', vehicleData!.ownerName, (
+                        value,
+                      ) {
+                        setState(() {
+                          vehicleData!.ownerName = value;
+                        });
+                      }),
 
-                      _buildInfoRow(
-                        'Make',
-                        vehicleData!.make,
-                            (value) {
-                          setState(() {
-                            vehicleData!.make = value;
-                          });
-                        },
-                      ),
+                      _buildInfoRow('Make', vehicleData!.make, (value) {
+                        setState(() {
+                          vehicleData!.make = value;
+                        });
+                      }),
 
-                      _buildInfoRow(
-                        'Model',
-                        vehicleData!.model,
-                            (value) {
-                          setState(() {
-                            vehicleData!.model = value;
-                          });
-                        },
-                      ),
+                      _buildInfoRow('Model', vehicleData!.model, (value) {
+                        setState(() {
+                          vehicleData!.model = value;
+                        });
+                      }),
 
                       _buildInfoRow(
                         'Chassis Number',
                         vehicleData!.chassisNumber,
-                            (value) {
+                        (value) {
                           setState(() {
                             vehicleData!.chassisNumber = value;
                           });
@@ -424,7 +357,7 @@ class _OcrScreenState extends State<OcrScreen> {
                       _buildInfoRow(
                         'Engine Number',
                         vehicleData!.engineNumber,
-                            (value) {
+                        (value) {
                           setState(() {
                             vehicleData!.engineNumber = value;
                           });
@@ -434,43 +367,38 @@ class _OcrScreenState extends State<OcrScreen> {
                       _buildInfoRow(
                         'Registration Date',
                         vehicleData!.registrationDate,
-                            (value) {
+                        (value) {
                           setState(() {
                             vehicleData!.registrationDate = value;
                           });
                         },
                       ),
 
-                      _buildInfoRow(
-                        'Expiry Date',
-                        vehicleData!.expiryDate,
-                            (value) {
-                          setState(() {
-                            vehicleData!.expiryDate = value;
-                          });
-                        },
-                      ),
+                      _buildInfoRow('Expiry Date', vehicleData!.expiryDate, (
+                        value,
+                      ) {
+                        setState(() {
+                          vehicleData!.expiryDate = value;
+                        });
+                      }),
 
                       _buildInfoRow(
                         'Engine Capacity',
                         vehicleData!.engineCapacity,
-                            (value) {
+                        (value) {
                           setState(() {
                             vehicleData!.engineCapacity = value;
                           });
                         },
                       ),
 
-                      _buildInfoRow(
-                        'Model Year',
-                        vehicleData!.modelYear,
-                            (value) {
-                          setState(() {
-                            vehicleData!.modelYear = value;
-                          });
-                        },
-                      ),
-
+                      _buildInfoRow('Model Year', vehicleData!.modelYear, (
+                        value,
+                      ) {
+                        setState(() {
+                          vehicleData!.modelYear = value;
+                        });
+                      }),
 
                       const SizedBox(height: 8),
 
@@ -503,9 +431,7 @@ class _OcrScreenState extends State<OcrScreen> {
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.green.shade300,
-                            ),
+                            border: Border.all(color: Colors.green.shade300),
                           ),
                           child: Row(
                             children: [
@@ -517,9 +443,7 @@ class _OcrScreenState extends State<OcrScreen> {
                               const Expanded(
                                 child: Text(
                                   'Vehicle information saved successfully.',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: TextStyle(fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ],
@@ -538,7 +462,7 @@ class _OcrScreenState extends State<OcrScreen> {
                               scannedImagePath = null;
                               extractedText = '';
                               vehicleData = null;
-                              isSaved= false;
+                              isSaved = false;
                             });
                           },
 
@@ -557,8 +481,6 @@ class _OcrScreenState extends State<OcrScreen> {
                           ),
                         ),
                       ),
-
-
                     ],
                   ],
                 ),

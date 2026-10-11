@@ -36,7 +36,8 @@ abstract class AuthRemoteDataSource {
     required String phoneNumber,
     required void Function(String verificationId, int? resendToken) onCodeSent,
     required void Function(AuthException exception) onVerificationFailed,
-    void Function(fb_auth.PhoneAuthCredential credential)? onVerificationCompleted,
+    void Function(fb_auth.PhoneAuthCredential credential)?
+    onVerificationCompleted,
     void Function(String verificationId)? onCodeAutoRetrievalTimeout,
     int? forceResendingToken,
     Duration timeout = const Duration(seconds: 60),
@@ -73,7 +74,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       final user = credential.user;
       if (user == null) {
-        throw AuthException('Registration failed: user is null', code: 'null-user');
+        throw AuthException(
+          'Registration failed: user is null',
+          code: 'null-user',
+        );
       }
 
       if (displayName != null && displayName.isNotEmpty) {
@@ -183,7 +187,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final user = _firebaseAuth.currentUser;
       if (user == null) {
-        throw AuthException('No authenticated user to verify', code: 'no-current-user');
+        throw AuthException(
+          'No authenticated user to verify',
+          code: 'no-current-user',
+        );
       }
       await user.sendEmailVerification();
     } on fb_auth.FirebaseAuthException catch (e) {
@@ -199,11 +206,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final user = _firebaseAuth.currentUser;
       if (user == null) {
-        throw AuthException('No authenticated user available to obtain ID token', code: 'unauthenticated');
+        throw AuthException(
+          'No authenticated user available to obtain ID token',
+          code: 'unauthenticated',
+        );
       }
       final token = await user.getIdToken(forceRefresh);
       if (token == null) {
-        throw AuthException('Received empty ID token from Firebase Auth', code: 'empty-token');
+        throw AuthException(
+          'Received empty ID token from Firebase Auth',
+          code: 'empty-token',
+        );
       }
       return token;
     } on fb_auth.FirebaseAuthException catch (e) {
@@ -219,7 +232,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String phoneNumber,
     required void Function(String verificationId, int? resendToken) onCodeSent,
     required void Function(AuthException exception) onVerificationFailed,
-    void Function(fb_auth.PhoneAuthCredential credential)? onVerificationCompleted,
+    void Function(fb_auth.PhoneAuthCredential credential)?
+    onVerificationCompleted,
     void Function(String verificationId)? onCodeAutoRetrievalTimeout,
     int? forceResendingToken,
     Duration timeout = const Duration(seconds: 60),
@@ -247,7 +261,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on fb_auth.FirebaseAuthException catch (e) {
       onVerificationFailed(_handleFirebaseAuthException(e));
     } catch (e) {
-      onVerificationFailed(AuthException('Unexpected phone verification error: $e'));
+      onVerificationFailed(
+        AuthException('Unexpected phone verification error: $e'),
+      );
     }
   }
 
@@ -264,17 +280,25 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         smsCode: smsCode.trim(),
       );
 
-      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final userCredential = await _firebaseAuth.signInWithCredential(
+        credential,
+      );
       final user = userCredential.user;
       if (user == null) {
-        throw AuthException('Phone authentication failed: user is null', code: 'null-user');
+        throw AuthException(
+          'Phone authentication failed: user is null',
+          code: 'null-user',
+        );
       }
 
       if (displayName != null && displayName.isNotEmpty) {
         await user.updateDisplayName(displayName);
       }
 
-      final doc = await _firestore.collection(FirestoreCollections.users).doc(user.uid).get();
+      final doc = await _firestore
+          .collection(FirestoreCollections.users)
+          .doc(user.uid)
+          .get();
       if (doc.exists && doc.data() != null) {
         return UserModel.fromMap(doc.data()!, uid: user.uid);
       }
@@ -298,7 +322,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             .doc(user.uid)
             .set(userModel.toMap(), SetOptions(merge: true));
       } catch (e) {
-        AppLogger.warning('Failed to persist phone user profile in Firestore: $e');
+        AppLogger.warning(
+          'Failed to persist phone user profile in Firestore: $e',
+        );
       }
 
       return userModel;
@@ -321,7 +347,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return UserModel.fromMap(doc.data()!, uid: user.uid);
       }
     } catch (e) {
-      AppLogger.warning('Could not fetch user profile from Firestore, using auth token info: $e');
+      AppLogger.warning(
+        'Could not fetch user profile from Firestore, using auth token info: $e',
+      );
     }
     return UserModel.fromFirebaseUser(user);
   }
@@ -330,33 +358,72 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     AppLogger.error('FirebaseAuthException [${e.code}]: ${e.message}');
     switch (e.code) {
       case 'invalid-verification-code':
-        return AuthException('The SMS verification code entered is invalid.', code: e.code);
+        return AuthException(
+          'The SMS verification code entered is invalid.',
+          code: e.code,
+        );
       case 'session-expired':
-        return AuthException('The SMS verification session has expired. Please request a new code.', code: e.code);
+        return AuthException(
+          'The SMS verification session has expired. Please request a new code.',
+          code: e.code,
+        );
       case 'quota-exceeded':
-        return AuthException('SMS verification quota exceeded. Please try again later.', code: e.code);
+        return AuthException(
+          'SMS verification quota exceeded. Please try again later.',
+          code: e.code,
+        );
       case 'invalid-phone-number':
-        return AuthException('The phone number entered is invalid.', code: e.code);
+        return AuthException(
+          'The phone number entered is invalid.',
+          code: e.code,
+        );
       case 'user-not-found':
-        return AuthException('No user account found with this email.', code: e.code);
+        return AuthException(
+          'No user account found with this email.',
+          code: e.code,
+        );
       case 'wrong-password':
-        return AuthException('Incorrect password. Please try again.', code: e.code);
+        return AuthException(
+          'Incorrect password. Please try again.',
+          code: e.code,
+        );
       case 'invalid-credential':
         return AuthException('Invalid login credentials.', code: e.code);
       case 'email-already-in-use':
-        return AuthException('An account already exists for this email.', code: e.code);
+        return AuthException(
+          'An account already exists for this email.',
+          code: e.code,
+        );
       case 'invalid-email':
-        return AuthException('The email address entered is invalid.', code: e.code);
+        return AuthException(
+          'The email address entered is invalid.',
+          code: e.code,
+        );
       case 'weak-password':
-        return AuthException('The password provided is too weak.', code: e.code);
+        return AuthException(
+          'The password provided is too weak.',
+          code: e.code,
+        );
       case 'user-disabled':
-        return AuthException('This account has been disabled. Please contact support.', code: e.code);
+        return AuthException(
+          'This account has been disabled. Please contact support.',
+          code: e.code,
+        );
       case 'too-many-requests':
-        return AuthException('Too many attempts. Please wait a few moments and try again.', code: e.code);
+        return AuthException(
+          'Too many attempts. Please wait a few moments and try again.',
+          code: e.code,
+        );
       case 'network-request-failed':
-        return AuthException('Network connection failed. Please check your internet.', code: e.code);
+        return AuthException(
+          'Network connection failed. Please check your internet.',
+          code: e.code,
+        );
       default:
-        return AuthException(e.message ?? 'An authentication error occurred.', code: e.code);
+        return AuthException(
+          e.message ?? 'An authentication error occurred.',
+          code: e.code,
+        );
     }
   }
 }
