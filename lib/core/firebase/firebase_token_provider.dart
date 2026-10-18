@@ -16,7 +16,9 @@ class FirebaseTokenProvider {
   Future<String> requireIdToken({bool forceRefresh = false}) async {
     final user = _firebaseAuth.currentUser;
     if (user == null) {
-      AppLogger.warning('Attempted to retrieve ID token without an authenticated user.');
+      AppLogger.warning(
+        'Attempted to retrieve ID token without an authenticated user.',
+      );
       throw AuthException(
         'User is not authenticated. Please log in first.',
         code: 'unauthenticated',
@@ -26,7 +28,10 @@ class FirebaseTokenProvider {
     try {
       final token = await user.getIdToken(forceRefresh);
       if (token == null || token.isEmpty) {
-        throw AuthException('Retrieved empty token from Firebase Auth.', code: 'empty-token');
+        throw AuthException(
+          'Retrieved empty token from Firebase Auth.',
+          code: 'empty-token',
+        );
       }
       return token;
     } on FirebaseAuthException catch (e) {
@@ -52,7 +57,9 @@ class FirebaseTokenProvider {
 
   /// Builds the standard HTTP Authorization header containing the Bearer token.
   /// Example: `{'Authorization': 'Bearer eyJhbGciOiJSUzI1NiIs...'}`
-  Future<Map<String, String>> getAuthorizationHeader({bool forceRefresh = false}) async {
+  Future<Map<String, String>> getAuthorizationHeader({
+    bool forceRefresh = false,
+  }) async {
     final token = await requireIdToken(forceRefresh: forceRefresh);
     return {
       'Authorization': 'Bearer $token',
