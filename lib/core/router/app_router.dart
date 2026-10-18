@@ -29,7 +29,7 @@ final GoRouter appRouter = GoRouter(
           path: 'diagnostics',
           builder: (context, state) => const DiagnosticPage(),
         ),
-        GoRoute(path: 'ocr', builder: (context, state) => const OcrPage()),
+        GoRoute(path: 'ocr', builder: (context, state) => const OcrScreen()),
         GoRoute(
           path: 'report',
           builder: (context, state) => const InspectionReportPage(),
