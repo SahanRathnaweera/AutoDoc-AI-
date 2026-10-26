@@ -1,15 +1,3 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
-// dart format width=80
-
-// **************************************************************************
-// InjectableConfigGenerator
-// **************************************************************************
-
-// ignore_for_file: type=lint
-// coverage:ignore-file
-
-// ignore_for_file: no_leading_underscores_for_library_prefixes
-
 import 'package:cloud_firestore/cloud_firestore.dart' as _i974;
 import 'package:firebase_auth/firebase_auth.dart' as _i59;
 import 'package:firebase_storage/firebase_storage.dart' as _i457;
@@ -38,31 +26,8 @@ import '../features/authentication/domain/usecases/reset_password.dart'
     as _i756;
 import '../features/authentication/domain/usecases/send_email_verification.dart'
     as _i763;
-import '../features/authentication/domain/usecases/send_phone_otp.dart'
-    as _i821;
-import '../features/authentication/domain/usecases/verify_phone_otp.dart'
-    as _i822;
-import '../features/storage/data/datasources/storage_remote_data_source.dart'
-    as _i68;
-import '../features/storage/data/repositories/storage_repository_impl.dart'
-    as _i426;
-import '../features/storage/domain/repositories/storage_repository.dart'
-    as _i151;
-import '../features/storage/domain/usecases/delete_storage_file.dart' as _i409;
-import '../features/storage/domain/usecases/get_storage_download_url.dart'
-    as _i717;
-import '../features/storage/domain/usecases/upload_inspection_audio.dart'
-    as _i580;
-import '../features/storage/domain/usecases/upload_inspection_photo.dart'
-    as _i937;
-import '../features/storage/domain/usecases/upload_user_profile_photo.dart'
-    as _i567;
-import '../features/storage/domain/usecases/upload_vehicle_document.dart'
-    as _i679;
-import '../features/storage/domain/usecases/upload_vehicle_photo.dart' as _i130;
 
 extension GetItInjectableX on _i174.GetIt {
-  // initializes the registration of main-scope dependencies inside of GetIt
   _i174.GetIt init({
     String? environment,
     _i526.EnvironmentFilter? environmentFilter,
@@ -119,36 +84,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i763.SendEmailVerification>(
       () => _i763.SendEmailVerification(gh<_i716.AuthRepository>()),
-    );
-    gh.lazySingleton<_i821.SendPhoneOtp>(
-      () => _i821.SendPhoneOtp(gh<_i716.AuthRepository>()),
-    );
-    gh.lazySingleton<_i822.VerifyPhoneOtp>(
-      () => _i822.VerifyPhoneOtp(gh<_i716.AuthRepository>()),
-    );
-    gh.lazySingleton<_i151.StorageRepository>(
-      () => _i426.StorageRepositoryImpl(gh<_i68.StorageRemoteDataSource>()),
-    );
-    gh.lazySingleton<_i409.DeleteStorageFile>(
-      () => _i409.DeleteStorageFile(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i717.GetStorageDownloadUrl>(
-      () => _i717.GetStorageDownloadUrl(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i580.UploadInspectionAudio>(
-      () => _i580.UploadInspectionAudio(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i937.UploadInspectionPhoto>(
-      () => _i937.UploadInspectionPhoto(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i567.UploadUserProfilePhoto>(
-      () => _i567.UploadUserProfilePhoto(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i679.UploadVehicleDocument>(
-      () => _i679.UploadVehicleDocument(gh<_i151.StorageRepository>()),
-    );
-    gh.lazySingleton<_i130.UploadVehiclePhoto>(
-      () => _i130.UploadVehiclePhoto(gh<_i151.StorageRepository>()),
     );
     return this;
   }

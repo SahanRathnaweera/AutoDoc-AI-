@@ -24,9 +24,24 @@ class AutoDocApp extends StatelessWidget {
       title: 'AutoDoc AI',
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
-      theme: ThemeData(useMaterial3: true, brightness: Brightness.light),
-      darkTheme: ThemeData(useMaterial3: true, brightness: Brightness.dark),
-      themeMode: ThemeMode.system,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0xff1479e8),
+        brightness: Brightness.light,
+        inputDecorationTheme: const InputDecorationTheme(
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(14)),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0xff1479e8),
+        brightness: Brightness.dark,
+      ),
+      themeMode: ThemeMode.dark,
     );
   }
 }

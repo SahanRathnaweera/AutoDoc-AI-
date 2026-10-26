@@ -1,0 +1,15 @@
+{
+  "columns": {
+    "make": "Brand",
+    "model": "Model",
+    "year": "YOM",
+    "mileage_km": "Millage(KM)",
+    "price_lkr": "Price"
+  },
+  "currency": "LKR",
+  "price_multiplier": 100000,
+  "mileage_multiplier": 1,
+  "group_column": null,
+  "price_units_verified": false,
+  "price_unit_note": "Assumes source prices are LKR lakhs; verify against dataset documentation."
+}
