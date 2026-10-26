@@ -1,0 +1,10 @@
+{
+  "columns": {
+    "name": "name",
+    "year": "year",
+    "km_driven": "km_driven",
+    "price": "selling_price"
+  },
+  "currency_status": "unverified",
+  "note": "Use original source values without conversion. This config is for training.train_bike_price, not training.train_price."
+}

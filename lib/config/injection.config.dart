@@ -1,15 +1,3 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
-// dart format width=80
-
-// **************************************************************************
-// InjectableConfigGenerator
-// **************************************************************************
-
-// ignore_for_file: type=lint
-// coverage:ignore-file
-
-// ignore_for_file: no_leading_underscores_for_library_prefixes
-
 import 'package:cloud_firestore/cloud_firestore.dart' as _i974;
 import 'package:firebase_auth/firebase_auth.dart' as _i59;
 import 'package:firebase_storage/firebase_storage.dart' as _i457;
@@ -112,7 +100,6 @@ import '../features/vehicles/domain/usecases/get_vehicles_by_owner.dart'
 import '../features/vehicles/domain/usecases/update_vehicle.dart' as _i517;
 
 extension GetItInjectableX on _i174.GetIt {
-  // initializes the registration of main-scope dependencies inside of GetIt
   _i174.GetIt init({
     String? environment,
     _i526.EnvironmentFilter? environmentFilter,
