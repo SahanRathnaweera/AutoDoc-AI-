@@ -26,10 +26,6 @@ import '../features/authentication/domain/usecases/reset_password.dart'
     as _i756;
 import '../features/authentication/domain/usecases/send_email_verification.dart'
     as _i763;
-import '../features/authentication/domain/usecases/send_phone_otp.dart'
-    as _i821;
-import '../features/authentication/domain/usecases/verify_phone_otp.dart'
-    as _i822;
 
 extension GetItInjectableX on _i174.GetIt {
   _i174.GetIt init({
@@ -61,6 +57,10 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i716.AuthRepository>(
       () => _i781.AuthRepositoryImpl(gh<_i299.AuthRemoteDataSource>()),
     );
+    gh.lazySingleton<_i68.StorageRemoteDataSource>(
+      () =>
+          _i68.StorageRemoteDataSourceImpl(gh<_i301.FirebaseStorageService>()),
+    );
     gh.lazySingleton<_i518.GetCurrentUser>(
       () => _i518.GetCurrentUser(gh<_i716.AuthRepository>()),
     );
@@ -84,12 +84,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i763.SendEmailVerification>(
       () => _i763.SendEmailVerification(gh<_i716.AuthRepository>()),
-    );
-    gh.lazySingleton<_i821.SendPhoneOtp>(
-      () => _i821.SendPhoneOtp(gh<_i716.AuthRepository>()),
-    );
-    gh.lazySingleton<_i822.VerifyPhoneOtp>(
-      () => _i822.VerifyPhoneOtp(gh<_i716.AuthRepository>()),
     );
     return this;
   }
