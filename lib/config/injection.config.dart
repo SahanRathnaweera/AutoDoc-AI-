@@ -38,6 +38,10 @@ import '../features/authentication/domain/usecases/reset_password.dart'
     as _i756;
 import '../features/authentication/domain/usecases/send_email_verification.dart'
     as _i763;
+import '../features/authentication/domain/usecases/send_phone_otp.dart'
+    as _i821;
+import '../features/authentication/domain/usecases/verify_phone_otp.dart'
+    as _i822;
 import '../features/storage/data/datasources/storage_remote_data_source.dart'
     as _i68;
 import '../features/storage/data/repositories/storage_repository_impl.dart'
@@ -115,6 +119,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i763.SendEmailVerification>(
       () => _i763.SendEmailVerification(gh<_i716.AuthRepository>()),
+    );
+    gh.lazySingleton<_i821.SendPhoneOtp>(
+      () => _i821.SendPhoneOtp(gh<_i716.AuthRepository>()),
+    );
+    gh.lazySingleton<_i822.VerifyPhoneOtp>(
+      () => _i822.VerifyPhoneOtp(gh<_i716.AuthRepository>()),
     );
     gh.lazySingleton<_i151.StorageRepository>(
       () => _i426.StorageRepositoryImpl(gh<_i68.StorageRemoteDataSource>()),
