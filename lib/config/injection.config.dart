@@ -96,6 +96,8 @@ import '../features/reports/domain/usecases/get_report_by_id.dart' as _i52;
 import '../features/reports/domain/usecases/get_report_by_inspection_id.dart'
     as _i622;
 import '../features/reports/domain/usecases/save_report.dart' as _i744;
+import '../features/storage/data/datasources/storage_remote_data_source.dart'
+    as _i68;
 import '../features/vehicles/data/datasources/vehicle_remote_data_source.dart'
     as _i410;
 import '../features/vehicles/data/repositories/vehicle_repository_impl.dart'
@@ -164,6 +166,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i49.MarketplaceRemoteDataSource>(
       () => _i49.MarketplaceRemoteDataSourceImpl(gh<_i494.FirestoreService>()),
+    );
+    gh.lazySingleton<_i68.StorageRemoteDataSource>(
+      () => _i68.StorageRemoteDataSourceImpl(gh<_i301.FirebaseStorageService>()),
     );
     gh.lazySingleton<_i518.GetCurrentUser>(
       () => _i518.GetCurrentUser(gh<_i716.AuthRepository>()),
