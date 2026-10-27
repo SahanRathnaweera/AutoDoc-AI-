@@ -35,11 +35,17 @@ void main() {
       expect(FirestoreCollections.vehicles, equals('vehicles'));
       expect(FirestoreCollections.inspections, equals('inspections'));
       expect(FirestoreCollections.damageResults, equals('damage_results'));
-      expect(FirestoreCollections.engineDiagnostics, equals('engine_diagnostics'));
+      expect(
+        FirestoreCollections.engineDiagnostics,
+        equals('engine_diagnostics'),
+      );
       expect(FirestoreCollections.ocrResults, equals('ocr_results'));
       expect(FirestoreCollections.valuations, equals('valuations'));
       expect(FirestoreCollections.reports, equals('reports'));
-      expect(FirestoreCollections.marketplaceListings, equals('marketplace_listings'));
+      expect(
+        FirestoreCollections.marketplaceListings,
+        equals('marketplace_listings'),
+      );
     });
   });
 }

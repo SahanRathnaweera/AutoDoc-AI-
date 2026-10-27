@@ -4,7 +4,8 @@ import 'package:autodoc_ai/core/error/exceptions.dart';
 import 'package:autodoc_ai/core/utils/app_logger.dart';
 
 typedef FirestoreQueryBuilder = Query<Map<String, dynamic>> Function(
-    Query<Map<String, dynamic>> query);
+  Query<Map<String, dynamic>> query,
+);
 
 /// Generic, reusable Firestore service abstraction providing safe CRUD,
 /// querying, transactions, and streams for AutoDoc AI.
@@ -71,15 +72,14 @@ class FirestoreService {
     required String documentId,
   }) async {
     try {
-      final snapshot =
-          await _firestore.collection(collectionPath).doc(documentId).get();
+      final snapshot = await _firestore
+          .collection(collectionPath)
+          .doc(documentId)
+          .get();
       if (!snapshot.exists || snapshot.data() == null) {
         return null;
       }
-      return {
-        'id': snapshot.id,
-        ...snapshot.data()!,
-      };
+      return {'id': snapshot.id, ...snapshot.data()!};
     } on FirebaseException catch (e) {
       _logAndThrow(e, 'getDocument from $collectionPath/$documentId');
     } catch (e) {
@@ -134,7 +134,9 @@ class FirestoreService {
         query = queryBuilder(query);
       }
       final querySnapshot = await query.get();
-      return querySnapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+      return querySnapshot.docs
+          .map((doc) => {'id': doc.id, ...doc.data()})
+          .toList();
     } on FirebaseException catch (e) {
       _logAndThrow(e, 'queryDocuments in $collectionPath');
     } catch (e) {
@@ -152,11 +154,11 @@ class FirestoreService {
         .doc(documentId)
         .snapshots()
         .map((snapshot) {
-      if (!snapshot.exists || snapshot.data() == null) {
-        return null;
-      }
-      return {'id': snapshot.id, ...snapshot.data()!};
-    });
+          if (!snapshot.exists || snapshot.data() == null) {
+            return null;
+          }
+          return {'id': snapshot.id, ...snapshot.data()!};
+        });
   }
 
   /// Streams real-time updates for a query or collection.
