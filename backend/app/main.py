@@ -10,6 +10,7 @@ import warnings
 import joblib
 import pandas as pd
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -196,6 +197,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
+)
+
 
 class VehicleRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
@@ -270,9 +279,9 @@ def ready():
         "note": (
             "all_models_loaded refers to required local models only. "
             "Gemini configuration does not verify key validity, model access or quota. "
-            "ONNX initializes on first prediction. Full inspection also requires "
-            "audio/price models and verified price units. Availability does not "
-            "establish accuracy."
+            "ONNX initializes on first prediction. Inspection returns partial "
+            "results when optional components are unavailable; direct valuation "
+            "still requires verified price units. Availability does not establish accuracy."
         ),
     }
 
@@ -435,7 +444,8 @@ def classify_audio(vehicle, file):
     except (ValueError, RuntimeError):
         raise HTTPException(
             422,
-            "Use a non-silent, unclipped 10-15 second WAV recording.",
+            "Use a supported audio format with a non-silent, unclipped "
+            "10-15 second recording.",
         ) from None
 
     with locks[f"{vehicle}_audio"]:
@@ -467,7 +477,7 @@ def audio(
 def inspection(
     metadata: str = Form(...),
     images: list[UploadFile] = File(...),
-    audio: UploadFile = File(...),
+    audio: UploadFile | None = File(default=None),
 ):
     if len(metadata) > 8000:
         raise HTTPException(422, "Metadata is too long.")
@@ -483,39 +493,122 @@ def inspection(
     if not 1 <= len(images) <= 6:
         raise HTTPException(422, "Upload 1-6 images.")
 
-    # Check required models before doing expensive work.
-    for kind in KINDS:
-        if req.vehicle_type == "bike" and kind == "damage":
-            if not gemini_configured():
-                raise HTTPException(
-                    503, "Set GEMINI_API_KEY in backend/.env and restart."
-                )
-            continue
-        get_model(req.vehicle_type, kind)
-
-    price = valuation(req)
-
-    photos = [
-        {
-            "image_index": index,
-            **detect(req.vehicle_type, file),
+    price_artifact = loaded.get(f"{req.vehicle_type}_price")
+    if price_artifact is None:
+        price = {
+            "available": False,
+            "reviewed_repair_allowance_lkr": (
+                req.reviewed_repair_allowance_lkr
+            ),
+            "notice": (
+                "Valuation unavailable: the vehicle price model is not installed."
+            ),
         }
-        for index, file in enumerate(images)
-    ]
+    elif not price_units_verified(price_artifact):
+        price = {
+            "available": False,
+            "reviewed_repair_allowance_lkr": (
+                req.reviewed_repair_allowance_lkr
+            ),
+            "notice": (
+                "Valuation unavailable: this model's LKR price units have not "
+                "been verified."
+            ),
+        }
+    else:
+        price = {
+            "available": True,
+            **valuation(req),
+        }
 
-    sound = classify_audio(req.vehicle_type, audio)
+    damage_key = f"{req.vehicle_type}_damage"
+    damage_available = (
+        gemini_configured() if req.vehicle_type == "bike" else damage_key in loaded
+    )
+    if not damage_available:
+        damage_notice = (
+            "Visual analysis unavailable: configure GEMINI_API_KEY."
+            if req.vehicle_type == "bike"
+            else "Visual analysis unavailable: the car damage model is not installed."
+        )
+        photos = [
+            {
+                "image_index": index,
+                "available": False,
+                "detections": [],
+                "notice": damage_notice,
+            }
+            for index in range(len(images))
+        ]
+    else:
+        photos = [
+            {
+                "image_index": index,
+                "available": True,
+                **detect(req.vehicle_type, file),
+            }
+            for index, file in enumerate(images)
+        ]
+
+    audio_artifact = loaded.get(f"{req.vehicle_type}_audio")
+    if audio_artifact is None:
+        sound = {
+            "available": False,
+            "predicted_label": "Unavailable",
+            "notice": (
+                "Audio classification unavailable: the vehicle audio model "
+                "is not installed."
+            ),
+        }
+    elif audio is None:
+        sound = {
+            "available": False,
+            "predicted_label": "Unavailable",
+            "notice": "Audio classification unavailable: no recording was provided.",
+        }
+    else:
+        sound = {
+            "available": True,
+            **classify_audio(req.vehicle_type, audio),
+        }
+
     count = sum(len(photo["detections"]) for photo in photos)
+    unavailable = []
+    if not damage_available:
+        unavailable.append("visual analysis")
+    if not price.get("available", False):
+        unavailable.append("valuation")
+    if not sound.get("available", False):
+        unavailable.append("audio classification")
+    status = "partial" if unavailable else "complete"
+    visual_summary = (
+        f"{count} possible visual findings across the photos."
+        if damage_available
+        else "Visual analysis was unavailable."
+    )
+    audio_summary = (
+        f'The experimental engine sound label is {sound["predicted_label"]}.'
+        if sound["available"]
+        else "Engine audio was not classified."
+    )
+    limitations = (
+        f" Unavailable components: {', '.join(unavailable)}."
+        if unavailable
+        else ""
+    )
 
     return {
+        "status": status,
+        "unavailable_components": unavailable,
         "vehicle_type": req.vehicle_type,
         "damage": photos,
         "audio": sound,
         "valuation": price,
         "voice_summary": (
-            f"Inspection processing completed. "
-            f"{count} possible visual findings across the photos. "
-            f'The experimental engine sound label is '
-            f'{sound["predicted_label"]}. '
+            f"Inspection processing {status}. "
+            f"{visual_summary} "
+            f"{audio_summary}"
+            f"{limitations} "
             "Please review the findings. "
             "This report is not a mechanical safety certificate."
         ),
