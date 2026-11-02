@@ -68,18 +68,42 @@ class _OcrScreenState extends State<OcrScreen> {
     );
   }
 
-  Future<void> scanDocument() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
 
-    if (image == null) {
-      return;
+  
+  Future<void> selectImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+
+      if (image == null || !mounted) {
+        return;
+      }
+
+      setState(() {
+        scannedImagePath = image.path;
+      });
+
+      await processImage(image.path);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            source == ImageSource.camera
+                ? 'Camera access failed. Please try again'
+                : 'Image upload failed. Please try again',
+          ),
+        ),
+      );
     }
-    setState(() {
-      scannedImagePath = image.path;
-    });
-
-    await processImage(image.path);
   }
+
+
+
+
 
   Future<void> processImage(String imagePath) async {
     setState(() {
@@ -219,25 +243,46 @@ class _OcrScreenState extends State<OcrScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: isProcessing ? null : scanDocument,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text(
-                  'Scan Vehicle Document',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      onPressed: isProcessing
+                          ? null
+                          : () => selectImage(ImageSource.camera),
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Take Photo'),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: isProcessing
+                          ? null
+                          : () => selectImage(ImageSource.gallery),
+                      icon: const Icon(Icons.upload_file),
+                      label: const Text('Upload Image'),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-
-            const SizedBox(height: 20),
+            
 
             if (scannedImagePath != null) ...[
               ClipRRect(

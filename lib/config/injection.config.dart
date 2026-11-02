@@ -24,10 +24,7 @@ import '../features/authentication/domain/usecases/observe_auth_state.dart'
 import '../features/authentication/domain/usecases/register_user.dart' as i682;
 import '../features/authentication/domain/usecases/reset_password.dart' as i756;
 import '../features/authentication/domain/usecases/send_email_verification.dart'
-    as i763;
-import '../features/authentication/domain/usecases/send_phone_otp.dart' as i821;
-import '../features/authentication/domain/usecases/verify_phone_otp.dart'
-    as i822;
+    as _i763;
 
 extension GetItInjectableX on i174.GetIt {
   i174.GetIt init({
@@ -59,8 +56,12 @@ extension GetItInjectableX on i174.GetIt {
     gh.lazySingleton<i716.AuthRepository>(
       () => i781.AuthRepositoryImpl(gh<i299.AuthRemoteDataSource>()),
     );
-    gh.lazySingleton<i518.GetCurrentUser>(
-      () => i518.GetCurrentUser(gh<i716.AuthRepository>()),
+    gh.lazySingleton<_i68.StorageRemoteDataSource>(
+      () =>
+          _i68.StorageRemoteDataSourceImpl(gh<_i301.FirebaseStorageService>()),
+    );
+    gh.lazySingleton<_i518.GetCurrentUser>(
+      () => _i518.GetCurrentUser(gh<_i716.AuthRepository>()),
     );
     gh.lazySingleton<i1048.GetIdToken>(
       () => i1048.GetIdToken(gh<i716.AuthRepository>()),
@@ -82,12 +83,6 @@ extension GetItInjectableX on i174.GetIt {
     );
     gh.lazySingleton<i763.SendEmailVerification>(
       () => i763.SendEmailVerification(gh<i716.AuthRepository>()),
-    );
-    gh.lazySingleton<i821.SendPhoneOtp>(
-      () => i821.SendPhoneOtp(gh<i716.AuthRepository>()),
-    );
-    gh.lazySingleton<i822.VerifyPhoneOtp>(
-      () => i822.VerifyPhoneOtp(gh<i716.AuthRepository>()),
     );
     return this;
   }
