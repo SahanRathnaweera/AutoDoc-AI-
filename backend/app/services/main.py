@@ -148,7 +148,7 @@ def classify_audio(vehicle, file):
     try:
         features = audio_features(BytesIO(read_upload(file)))
     except (ValueError, RuntimeError):
-        raise HTTPException(422, 'Use a non-silent, unclipped 10-15 second WAV recording.')
+        raise HTTPException(422, 'Use a supported audio format with a non-silent, unclipped 10-15 second recording.')
     label = str(artifact['model'].predict(features.reshape(1, -1))[0])
     return {'vehicle_type': vehicle, 'model_version': f'{vehicle}_audio_v1',
         'predicted_label': label, 'status': 'experimental_classification',
