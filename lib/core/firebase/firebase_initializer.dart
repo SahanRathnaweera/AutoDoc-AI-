@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:autodoc_ai/core/utils/app_logger.dart';
+
 import 'firebase_options.dart';
 
 class FirebaseInitializer {
@@ -16,7 +17,9 @@ class FirebaseInitializer {
   static Future<bool> initialize({FirebaseOptions? options}) async {
     if (_isInitialized || Firebase.apps.isNotEmpty) {
       _isInitialized = true;
-      AppLogger.info('Firebase already initialized: ${Firebase.apps.map((a) => a.name).join(', ')}');
+      AppLogger.info(
+        'Firebase already initialized: ${Firebase.apps.map((a) => a.name).join(', ')}',
+      );
       return true;
     }
 

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:injectable/injectable.dart';
 import 'package:autodoc_ai/core/error/exceptions.dart';
@@ -48,8 +49,13 @@ class FirebaseStorageService {
     try {
       final ref = _storage.ref().child(storagePath);
       final metadata = contentType != null
-          ? SettableMetadata(contentType: contentType, customMetadata: customMetadata)
-          : (customMetadata != null ? SettableMetadata(customMetadata: customMetadata) : null);
+          ? SettableMetadata(
+              contentType: contentType,
+              customMetadata: customMetadata,
+            )
+          : (customMetadata != null
+                ? SettableMetadata(customMetadata: customMetadata)
+                : null);
 
       final uploadTask = await ref.putFile(file, metadata);
       final downloadUrl = await uploadTask.ref.getDownloadURL();

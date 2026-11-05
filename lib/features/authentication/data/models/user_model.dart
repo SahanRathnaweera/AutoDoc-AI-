@@ -60,7 +60,9 @@ class UserModel extends UserEntity {
       'photoUrl': photoUrl,
       'isEmailVerified': isEmailVerified,
       'role': role,
-      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }

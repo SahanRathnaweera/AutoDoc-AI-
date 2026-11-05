@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 
 void main() {
@@ -13,11 +13,28 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: '360 Panorama',
+      title: '360 Panorama & AutoDoc AI',
+
+  
       theme: ThemeData(
-        colorSchemeSeed: Colors.teal,
         useMaterial3: true,
+        colorSchemeSeed: const Color(0xff1479e8),
+        brightness: Brightness.light,
+        inputDecorationTheme: const InputDecorationTheme(
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(14)),
+            borderSide: BorderSide.none,
+          ),
+        ),
       ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0xff1479e8),
+        brightness: Brightness.dark,
+      ),
+      themeMode: ThemeMode.dark,
+
       home: const PanoramaScreen(),
     );
   }
@@ -27,8 +44,7 @@ class PanoramaScreen extends StatefulWidget {
   const PanoramaScreen({super.key});
 
   @override
-  State<PanoramaScreen> createState() =>
-      _PanoramaScreenState();
+  State<PanoramaScreen> createState() => _PanoramaScreenState();
 }
 
 class _PanoramaScreenState extends State<PanoramaScreen> {
