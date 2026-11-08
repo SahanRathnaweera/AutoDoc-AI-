@@ -23,6 +23,7 @@ This repository currently contains the starter foundation for the app, including
 - GoRouter-based navigation
 - GetIt dependency injection setup
 - a clean architecture-ready folder structure
+- a sample inspection report with PDF sharing
 - base project configuration for future feature development
 
 ---
@@ -82,8 +83,32 @@ Make sure you have the following installed:
 git clone https://github.com/SahanRathnaweera/AutoDoc-AI-.git
 cd AutoDoc-AI-
 flutter pub get
-flutter run
+flutter run -d chrome
 ```
+
+The app defaults to `http://127.0.0.1:8000` on web, Windows desktop, and iOS
+simulator, and `http://10.0.2.2:8000` on Android emulators. Set
+`--dart-define=API_BASE_URL=<backend URL>` to override this (for example, use
+the development computer's LAN IP for a physical device).
+
+The report screen submits vehicle details and 1-6 JPEG/PNG photos to the
+FastAPI `/api/v1/inspection` endpoint. An optional 10-15 second engine recording
+in a common format (for example WAV, MP3, M4A/AAC, FLAC, or OGG) is classified
+only when a compatible audio model is installed. Format support depends on the
+backend's installed audio decoders. Start the backend and configure any models/API keys you need;
+see [backend/README.md](./backend/README.md). For a physical device, replace
+`10.0.2.2` with the development computer's LAN IP. For Windows desktop or an
+iOS simulator, use `http://127.0.0.1:8000`.
+
+Live inspection reports available analyses and marks missing model outputs
+unavailable; it does not invent a valuation or audio diagnosis. With the car
+damage model installed, photo analysis can run even if price/audio models are
+missing. Engine audio is optional when no audio model is installed.
+
+To test the report and PDF screens without trained models, enable **Demo mode
+(simulated output)** on the report form. It generates random placeholder
+valuation/audio values and clearly marks the report and PDF as simulated; it
+does not analyze uploaded media and must not be used for real vehicle decisions.
 
 ### Optional code generation
 
@@ -120,7 +145,7 @@ Planned evolution of this project includes:
 - vehicle image capture and upload flow,
 - AI-powered damage classification,
 - audio diagnostics integration,
-- PDF report export,
+- connecting report generation and PDF export to live inspection results,
 - authentication and inspection history,
 - production-ready architecture and testing coverage.
 
