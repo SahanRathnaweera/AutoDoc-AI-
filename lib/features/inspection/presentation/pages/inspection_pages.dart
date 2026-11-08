@@ -1,5 +1,14 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../../../core/utils/show_snackbar.dart';
+import '../../data/services/inspection_api_service.dart';
+import '../../data/services/inspection_report_pdf_service.dart';
+import '../../domain/entities/inspection_report.dart';
 
 const _navy = Color(0xff071722);
 const _panel = Color(0xff102936);
@@ -228,7 +237,7 @@ class DiagnosticPage extends StatelessWidget {
         FilledButton.icon(
           onPressed: () => context.push('/dashboard/report'),
           icon: const Icon(Icons.picture_as_pdf_outlined),
-          label: const Text('Generate full report'),
+          label: const Text('Start inspection & report'),
         ),
       ],
     );
@@ -287,65 +296,516 @@ class OcrPage extends StatelessWidget {
   }
 }
 
-class InspectionReportPage extends StatelessWidget {
+class InspectionReportPage extends StatefulWidget {
   const InspectionReportPage({super.key});
+
+  @override
+  State<InspectionReportPage> createState() => _InspectionReportPageState();
+}
+
+class _InspectionReportPageState extends State<InspectionReportPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _makeController = TextEditingController();
+  final _modelController = TextEditingController();
+  final _yearController = TextEditingController();
+  final _mileageController = TextEditingController();
+  final _registrationController = TextEditingController();
+  final _repairAllowanceController = TextEditingController(text: '0');
+  final _api = InspectionApiService();
+  final _imagePicker = ImagePicker();
+  String _vehicleType = 'car';
+  bool _isDemoMode = false;
+  List<XFile> _images = const [];
+  PlatformFile? _audio;
+  InspectionReport? _report;
+  bool _isSubmitting = false;
+  bool _isGeneratingPdf = false;
+
+  @override
+  void dispose() {
+    _makeController.dispose();
+    _modelController.dispose();
+    _yearController.dispose();
+    _mileageController.dispose();
+    _registrationController.dispose();
+    _repairAllowanceController.dispose();
+    _api.close();
+    super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    try {
+      final images = await _imagePicker.pickMultiImage(imageQuality: 90);
+      if (!mounted || images.isEmpty) return;
+      if (images.length > 6) {
+        showCustomSnackBar(context, 'Select no more than 6 photos.');
+        return;
+      }
+      setState(() => _images = images);
+    } catch (error) {
+      if (mounted) {
+        showCustomSnackBar(context, 'Could not open the photo picker: $error');
+      }
+    }
+  }
+
+  Future<void> _pickAudio() async {
+    try {
+      final file = await FilePicker.pickFile(type: FileType.audio);
+      if (!mounted || file == null) return;
+      setState(() => _audio = file);
+    } catch (error) {
+      if (mounted) {
+        showCustomSnackBar(context, 'Could not open the audio picker: $error');
+      }
+    }
+  }
+
+  Future<void> _runInspection() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_images.isEmpty) {
+      showCustomSnackBar(
+        context,
+        'Select 1 to 6 JPEG or PNG inspection photos.',
+      );
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    try {
+      final report = await _api.createReport(
+        vehicleType: _vehicleType,
+        make: _makeController.text.trim(),
+        model: _modelController.text.trim(),
+        year: int.parse(_yearController.text.trim()),
+        mileageKm: double.parse(_mileageController.text.trim()),
+        reviewedRepairAllowanceLkr:
+            double.tryParse(_repairAllowanceController.text.trim()) ?? 0,
+        registrationNumber: _registrationController.text.trim(),
+        images: _images,
+        audio: _audio?.xFile,
+      );
+      if (!mounted) return;
+      setState(() => _report = report);
+      showCustomSnackBar(
+        context,
+        'Inspection report generated from backend results.',
+        isError: false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      showCustomSnackBar(context, 'Inspection could not be completed: $error');
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _runDemoInspection() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      final random = Random();
+      final baseEstimate = (random.nextInt(19_000_001) + 1_000_000).toDouble();
+      final repairAllowance =
+          double.tryParse(_repairAllowanceController.text.trim()) ?? 0;
+      const audioLabels = [
+        'SIMULATED: normal sound',
+        'SIMULATED: rough-idle-like sound',
+        'SIMULATED: possible knocking-like sound',
+        'SIMULATED: possible belt-noise-like sound',
+      ];
+      final generatedAt = DateTime.now();
+      final report = InspectionReport(
+        reportId: 'DEMO-${generatedAt.millisecondsSinceEpoch}',
+        vehicleName:
+            '${_yearController.text.trim()} ${_makeController.text.trim()} '
+            '${_modelController.text.trim()}',
+        registrationNumber: _registrationController.text.trim(),
+        generatedAt: generatedAt,
+        currency: 'DEMO LKR',
+        baseEstimate: baseEstimate,
+        adjustedEstimate: max(0.0, baseEstimate - repairAllowance),
+        repairAllowance: repairAllowance,
+        photosAnalyzed: 0,
+        findings: const [],
+        audioLabel: audioLabels[random.nextInt(audioLabels.length)],
+        audioNotice: 'Random demo placeholder only; no recording or audio model was used.',
+        valuationNotice:
+            'Random demo amount only; it is not a market valuation.',
+        voiceSummary:
+            'Simulated report for interface and PDF testing. No vehicle '
+            'photos or engine audio were analyzed.',
+        isSimulated: true,
+      );
+      if (!mounted) return;
+      setState(() => _report = report);
+      showCustomSnackBar(
+        context,
+        'Simulated demo report created. No inspection was performed.',
+        isError: false,
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _sharePdf() async {
+    final report = _report;
+    if (report == null) return;
+    setState(() => _isGeneratingPdf = true);
+
+    try {
+      final shared = await InspectionReportPdfService.sharePdf(report);
+      if (!mounted) return;
+      if (shared) {
+        showCustomSnackBar(
+          context,
+          'PDF report is ready to save or share.',
+          isError: false,
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      showCustomSnackBar(context, 'Could not generate the PDF report: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _isGeneratingPdf = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return _InspectionScaffold(
-      title: 'AI valuation & report',
-      children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'AutoDoc AI',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(color: _navy, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Vehicle health certificate',
-                style: TextStyle(color: Colors.black54),
-              ),
-              const Divider(height: 28),
-              const Center(child: _ReportScore()),
-              const SizedBox(height: 18),
-              const Text(
-                '2019 Tesla Model 3',
-                style: TextStyle(color: _navy, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              const _ReportLine(
-                label: 'AI valuation',
-                value: '\$25,500 - \$27,000',
-              ),
-              const _ReportLine(
-                label: 'Verified checks',
-                value: '18 completed',
-              ),
-              const _ReportLine(
-                label: 'Damage findings',
-                value: '3 minor areas',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        FilledButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.picture_as_pdf),
-          label: const Text('Download PDF certificate'),
-        ),
-      ],
+      title: 'Automated inspection report',
+      children: _report == null
+          ? _buildInspectionForm()
+          : _buildReport(_report!),
     );
   }
+
+  List<Widget> _buildInspectionForm() => [
+    const Text(
+      'Vehicle information',
+      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+    ),
+    const SizedBox(height: 12),
+    Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          DropdownButtonFormField<String>(
+            initialValue: _vehicleType,
+            decoration: const InputDecoration(labelText: 'Vehicle type'),
+            items: const [
+              DropdownMenuItem(value: 'car', child: Text('Car')),
+              DropdownMenuItem(value: 'bike', child: Text('Motorcycle')),
+            ],
+            onChanged: (value) {
+              if (value != null) setState(() => _vehicleType = value);
+            },
+          ),
+          const SizedBox(height: 12),
+          _textField(_makeController, 'Make', required: true),
+          const SizedBox(height: 12),
+          _textField(_modelController, 'Model', required: true),
+          const SizedBox(height: 12),
+          _textField(
+            _yearController,
+            'Model year',
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              final year = int.tryParse(value?.trim() ?? '');
+              if (year == null || year < 1950) {
+                return 'Enter a valid model year (1950 or later).';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          _textField(
+            _mileageController,
+            'Odometer (km)',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: (value) {
+              final mileage = double.tryParse(value?.trim() ?? '');
+              if (mileage == null || !mileage.isFinite || mileage < 0) {
+                return 'Enter a valid odometer reading.';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          _textField(
+            _registrationController,
+            'Registration number',
+            required: true,
+          ),
+          const SizedBox(height: 12),
+          _textField(
+            _repairAllowanceController,
+            'Reviewed repair allowance (LKR)',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: (value) {
+              final allowance = double.tryParse(value?.trim() ?? '');
+              if (allowance == null || !allowance.isFinite || allowance < 0) {
+                return 'Enter zero or a valid non-negative allowance.';
+              }
+              return null;
+            },
+          ),
+        ],
+      ),
+    ),
+    const SizedBox(height: 12),
+    SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: const Text('Demo mode (simulated output)'),
+      subtitle: const Text(
+        'Uses a random placeholder amount and audio label. No media or '
+        'inspection models are used.',
+      ),
+      value: _isDemoMode,
+      onChanged: _isSubmitting
+          ? null
+          : (enabled) => setState(() => _isDemoMode = enabled),
+    ),
+    if (!_isDemoMode) ...[
+      const SizedBox(height: 20),
+      const Text(
+        'Inspection media',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'Choose 1-6 clear JPEG/PNG vehicle photos. Add a non-silent, unclipped '
+        '10-15 second engine recording if available; audio is classified only '
+        'when the backend has a compatible model. Unsupported analysis is '
+        'reported as unavailable, never replaced with a simulated result.',
+      ),
+      const SizedBox(height: 12),
+      OutlinedButton.icon(
+        onPressed: _isSubmitting ? null : _pickImages,
+        icon: const Icon(Icons.photo_library_outlined),
+        label: Text(
+          _images.isEmpty
+              ? 'Select vehicle photos'
+              : '${_images.length} photos selected',
+        ),
+      ),
+      if (_images.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            _images.map((image) => image.name).join(', '),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        onPressed: _isSubmitting ? null : _pickAudio,
+        icon: const Icon(Icons.audio_file_outlined),
+        label: Text(_audio?.name ?? 'Add optional engine audio'),
+      ),
+    ],
+    const SizedBox(height: 20),
+    FilledButton.icon(
+      onPressed: _isSubmitting
+          ? null
+          : _isDemoMode
+          ? _runDemoInspection
+          : _runInspection,
+      icon: _isSubmitting
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.document_scanner_outlined),
+      label: Text(
+        _isSubmitting
+            ? 'Generating report...'
+            : _isDemoMode
+            ? 'Generate simulated report'
+            : 'Run inspection',
+      ),
+    ),
+    if (!_isDemoMode) ...[
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        onPressed: _isSubmitting ? null : _runDemoInspection,
+        icon: const Icon(Icons.science_outlined),
+        label: const Text('Generate simulated demo report'),
+      ),
+      const SizedBox(height: 4),
+      const Text(
+        'Use this if inspection models are unavailable. The amount and audio '
+        'label are random placeholders, not real results.',
+        textAlign: TextAlign.center,
+      ),
+    ],
+  ];
+
+  Widget _textField(
+    TextEditingController controller,
+    String label, {
+    bool required = false,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) => TextFormField(
+    controller: controller,
+    keyboardType: keyboardType,
+    decoration: InputDecoration(labelText: label),
+    validator:
+        validator ??
+        (value) {
+          if (required && (value == null || value.trim().isEmpty)) {
+            return '$label is required.';
+          }
+          return null;
+        },
+  );
+
+  List<Widget> _buildReport(InspectionReport report) => [
+    if (report.isSimulated)
+      const _InfoBanner(
+        icon: Icons.warning_amber_rounded,
+        text:
+            'SIMULATED DEMO REPORT — random placeholders only. No photos or '
+            'audio were analyzed. Do not use for real decisions.',
+        color: Colors.deepOrange,
+      ),
+    if (report.isSimulated) const SizedBox(height: 12),
+    if (!report.isSimulated && report.isPartial)
+      _InfoBanner(
+        icon: Icons.warning_amber_rounded,
+        text:
+            'Partial live inspection. Unavailable: '
+            '${report.unavailableComponents.isEmpty ? 'some analysis components' : report.unavailableComponents.join(', ')}. '
+            'No substitute values were generated.',
+        color: Colors.orange,
+      ),
+    if (!report.isSimulated && report.isPartial) const SizedBox(height: 12),
+    Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'AutoDoc AI',
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(color: _navy, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            report.isSimulated
+                ? 'Simulated placeholder output'
+                : report.isPartial
+                ? 'Partial live inspection results'
+                : 'AI-assisted inspection summary',
+            style: const TextStyle(color: Colors.black54),
+          ),
+          const Divider(height: 28),
+          Text(
+            report.vehicleName,
+            style: const TextStyle(color: _navy, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          _ReportLine(label: 'Registration', value: report.registrationNumber),
+          _ReportLine(label: 'Report ID', value: report.reportId),
+          _ReportLine(label: 'Generated', value: report.generatedDate),
+          _ReportLine(
+            label: 'Photos analyzed',
+            value: '${report.photosAnalyzed}',
+          ),
+          _ReportLine(label: 'Damage findings', value: report.damageSummary),
+          _ReportLine(label: 'Engine audio label', value: report.audioLabel),
+          _ReportLine(
+            label: 'Base valuation estimate',
+            value: report.baseEstimateLabel,
+          ),
+          _ReportLine(
+            label: 'Reviewed repair allowance',
+            value: report.repairAllowanceLabel,
+          ),
+          _ReportLine(
+            label: 'Adjusted valuation estimate',
+            value: report.adjustedEstimateLabel,
+          ),
+        ],
+      ),
+    ),
+    const SizedBox(height: 18),
+    const Text(
+      'Visual findings',
+      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+    ),
+    if (report.findings.isEmpty)
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(
+          report.isSimulated || !report.visualAnalysisAvailable
+              ? Icons.info_outline
+              : Icons.check_circle_outline,
+        ),
+        title: Text(
+          report.isSimulated
+              ? 'Visual analysis was not performed in demo mode.'
+              : !report.visualAnalysisAvailable
+              ? report.visualNotice
+              : 'No findings returned by the visual analysis.',
+        ),
+      )
+    else
+      for (var index = 0; index < report.findings.length; index++)
+        _findingTile(report.findings[index], index),
+    const SizedBox(height: 12),
+    _InfoBanner(
+      icon: Icons.graphic_eq,
+      text: '${report.audioLabel}. ${report.audioNotice}',
+      color: Colors.orange,
+    ),
+    const SizedBox(height: 12),
+    _InfoBanner(
+      icon: Icons.info_outline,
+      text: '${report.valuationNotice} ${report.voiceSummary}',
+      color: Colors.blue,
+    ),
+    const SizedBox(height: 18),
+    FilledButton.icon(
+      onPressed: _isGeneratingPdf ? null : _sharePdf,
+      icon: _isGeneratingPdf
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.picture_as_pdf),
+      label: Text(
+        _isGeneratingPdf ? 'Preparing PDF...' : 'Download / share PDF report',
+      ),
+    ),
+    const SizedBox(height: 8),
+    OutlinedButton.icon(
+      onPressed: _isSubmitting || _isGeneratingPdf
+          ? null
+          : () => setState(() => _report = null),
+      icon: const Icon(Icons.refresh),
+      label: const Text('Start another inspection'),
+    ),
+  ];
+
+  Widget _findingTile(InspectionFinding finding, int index) => ListTile(
+    contentPadding: EdgeInsets.zero,
+    leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+    title: Text('${index + 1}. ${finding.label}'),
+    subtitle: Text(
+      'Photo ${finding.imageIndex + 1} · ${finding.confidenceLabel}'
+      '${finding.detail == null ? '' : '\n${finding.detail}'}',
+    ),
+  );
 }
 
 class _InspectionShell extends StatelessWidget {
@@ -622,30 +1082,6 @@ class _OcrField extends StatelessWidget {
   );
 }
 
-class _ReportScore extends StatelessWidget {
-  const _ReportScore();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox(
-    width: 92,
-    height: 92,
-    child: Stack(
-      alignment: Alignment.center,
-      children: [
-        CircularProgressIndicator(value: 0.8, strokeWidth: 8, color: _blue),
-        Text(
-          '80',
-          style: TextStyle(
-            color: _navy,
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 class _ReportLine extends StatelessWidget {
   const _ReportLine({required this.label, required this.value});
 
@@ -656,12 +1092,21 @@ class _ReportLine extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 8),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.black54)),
-        const Spacer(),
-        Text(
-          value,
-          style: const TextStyle(color: _navy, fontWeight: FontWeight.w700),
+        Expanded(
+          flex: 2,
+          child: Text(label, style: const TextStyle(color: Colors.black54)),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            softWrap: true,
+            style: const TextStyle(color: _navy, fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     ),

@@ -30,6 +30,11 @@ dependencies:
   firebase_storage: ^13.6.0
   equatable: ^3.0.0
   flutter_dotenv: ^6.0.1
+  pdf: ^3.13.1
+  printing: ^5.15.1
+  http: ^1.6.0
+  file_picker: ^13.1.0
+  panorama_viewer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
