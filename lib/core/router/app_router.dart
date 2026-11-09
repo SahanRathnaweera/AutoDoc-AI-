@@ -13,11 +13,27 @@ import '../../features/marketplace/presentation/pages/profile_page.dart';
 import '../../features/marketplace/presentation/pages/seller_listing_page.dart';
 import '../../features/marketplace/presentation/pages/vehicle_detail_page.dart';
 
-final GoRouter appRouter = GoRouter(
+GoRouter createAppRouter({
+  required bool authAvailable,
+  required bool Function() isSignedIn,
+  required Listenable authRefresh,
+}) => GoRouter(
   initialLocation: '/',
+  refreshListenable: authRefresh,
+  redirect: (context, state) {
+    final path = state.uri.path;
+    if (path == '/' || path == '/auth' || isSignedIn()) return null;
+    return '/auth';
+  },
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const SplashPage()),
-    GoRoute(path: '/auth', builder: (context, state) => const AuthPage()),
+    GoRoute(
+      path: '/',
+      builder: (context, state) => SplashPage(isSignedIn: isSignedIn),
+    ),
+    GoRoute(
+      path: '/auth',
+      builder: (context, state) => AuthPage(authAvailable: authAvailable),
+    ),
     GoRoute(
       path: '/dashboard',
       builder: (context, state) => const DashboardPage(),

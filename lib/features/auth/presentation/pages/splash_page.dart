@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/utils/brand_logo.dart';
 
 class SplashPage extends StatefulWidget {
-  const SplashPage({super.key});
+  const SplashPage({super.key, required this.isSignedIn});
+
+  final bool Function() isSignedIn;
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -50,7 +52,7 @@ class _SplashPageState extends State<SplashPage>
       curve: const Interval(0.65, 1, curve: Curves.easeOut),
     );
     _navigationTimer = Timer(const Duration(milliseconds: 2600), () {
-      if (mounted) context.go('/auth');
+      if (mounted) context.go(widget.isSignedIn() ? '/dashboard' : '/auth');
     });
   }
 

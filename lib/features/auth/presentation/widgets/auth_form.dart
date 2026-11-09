@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../domain/entities/demo_credentials.dart';
+import 'package:autodoc_ai/config/injection.dart';
+import 'package:autodoc_ai/core/error/failures.dart';
+import 'package:autodoc_ai/core/utils/show_snackbar.dart';
+import 'package:autodoc_ai/features/authentication/domain/usecases/login_user.dart';
+import 'package:autodoc_ai/features/authentication/domain/usecases/register_user.dart';
+import 'package:autodoc_ai/features/authentication/domain/usecases/reset_password.dart';
 import '../../domain/entities/auth_mode.dart';
 
 class AuthForm extends StatefulWidget {
-  const AuthForm({required this.mode, super.key});
+  const AuthForm({
+    required this.mode,
+    required this.authAvailable,
+    required this.onBusyChanged,
+    super.key,
+  });
 
   final AuthMode mode;
+  final bool authAvailable;
+  final ValueChanged<bool> onBusyChanged;
 
   @override
   State<AuthForm> createState() => _AuthFormState();
@@ -19,6 +31,7 @@ class _AuthFormState extends State<AuthForm> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   bool _obscurePassword = true;
+  bool _busy = false;
 
   @override
   void dispose() {
@@ -28,19 +41,89 @@ class _AuthFormState extends State<AuthForm> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (widget.mode == AuthMode.login &&
-        (_emailController.text.trim().toLowerCase() != DemoCredentials.email ||
-            _passwordController.text != DemoCredentials.password)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid demo login credentials.')),
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final isLogin = widget.mode == AuthMode.login;
+    await _runAuthAction(() async {
+      final result = isLogin
+          ? await getIt<LoginUser>()(
+              LoginParams(email: email, password: password),
+            )
+          : await getIt<RegisterUser>()(
+              RegisterParams(
+                email: email,
+                password: password,
+                displayName: _nameController.text.trim(),
+              ),
+            );
+
+      if (!mounted) return;
+      result.fold(
+        (failure) => showCustomSnackBar(
+          context,
+          failure is UserNotFoundFailure
+              ? 'Invalid email or password.'
+              : failure.message,
+        ),
+        (_) => context.go('/dashboard'),
       );
+    });
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    final error = _validateEmail(email);
+    if (error != null) {
+      showCustomSnackBar(context, error);
       return;
     }
 
-    context.go('/dashboard');
+    await _runAuthAction(() async {
+      final result = await getIt<ResetPassword>()(
+        ResetPasswordParams(email: email),
+      );
+      if (!mounted) return;
+      final failure = result.fold<Failure?>((failure) => failure, (_) => null);
+      if (failure != null && failure is! UserNotFoundFailure) {
+        showCustomSnackBar(context, failure.message);
+        return;
+      }
+
+      showCustomSnackBar(
+        context,
+        'If an account exists for that email, a reset link will be sent.',
+        isError: false,
+      );
+    });
+  }
+
+  Future<void> _runAuthAction(Future<void> Function() action) async {
+    if (_busy) return;
+    if (!widget.authAvailable) {
+      showCustomSnackBar(context, 'Firebase Authentication is unavailable.');
+      return;
+    }
+
+    setState(() => _busy = true);
+    widget.onBusyChanged(true);
+    try {
+      await action();
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+        widget.onBusyChanged(false);
+      }
+    }
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) return 'Enter your email address';
+    if (!email.contains('@')) return 'Enter a valid email address';
+    return null;
   }
 
   @override
@@ -73,13 +156,7 @@ class _AuthFormState extends State<AuthForm> {
               labelText: 'Email address',
               prefixIcon: Icon(Icons.mail_outline),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Enter your email address';
-              }
-              if (!value.contains('@')) return 'Enter a valid email address';
-              return null;
-            },
+            validator: _validateEmail,
           ),
           const SizedBox(height: 14),
           TextFormField(
@@ -104,19 +181,19 @@ class _AuthFormState extends State<AuthForm> {
                     ),
                   ),
                 ),
-            validator: (value) => value == null || value.length < 8
-                ? 'Password must be at least 8 characters'
-                : null,
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Enter your password';
+              if (!isLogin && value.length < 8) {
+                return 'Password must be at least 8 characters';
+              }
+              return null;
+            },
           ),
           if (isLogin)
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Password reset is not connected yet.'),
-                  ),
-                ),
+                onPressed: _busy ? null : _resetPassword,
                 child: const Text('Forgot password?'),
               ),
             )
@@ -129,8 +206,13 @@ class _AuthFormState extends State<AuthForm> {
           ],
           const SizedBox(height: 20),
           FilledButton(
-            onPressed: _submit,
-            child: Text(isLogin ? 'Log in' : 'Create account'),
+            onPressed: _busy ? null : _submit,
+            child: _busy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(isLogin ? 'Log in' : 'Create account'),
           ),
         ],
       ),

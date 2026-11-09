@@ -5,7 +5,9 @@ import '../../domain/entities/auth_mode.dart';
 import '../widgets/auth_form.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+  const AuthPage({super.key, required this.authAvailable});
+
+  final bool authAvailable;
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -13,6 +15,7 @@ class AuthPage extends StatefulWidget {
 
 class _AuthPageState extends State<AuthPage> {
   AuthMode _mode = AuthMode.login;
+  bool _busy = false;
 
   @override
   Widget build(BuildContext context) {
@@ -89,9 +92,11 @@ class _AuthPageState extends State<AuthPage> {
                               ),
                             ],
                             selected: {_mode},
-                            onSelectionChanged: (selection) {
-                              setState(() => _mode = selection.first);
-                            },
+                            onSelectionChanged: _busy
+                                ? null
+                                : (selection) {
+                                    setState(() => _mode = selection.first);
+                                  },
                           ),
                           const SizedBox(height: 28),
                           AnimatedSwitcher(
@@ -107,7 +112,14 @@ class _AuthPageState extends State<AuthPage> {
                                     child: child,
                                   ),
                                 ),
-                            child: AuthForm(key: ValueKey(_mode), mode: _mode),
+                            child: AuthForm(
+                              key: ValueKey(_mode),
+                              mode: _mode,
+                              authAvailable: widget.authAvailable,
+                              onBusyChanged: (busy) {
+                                setState(() => _busy = busy);
+                              },
+                            ),
                           ),
                         ],
                       ),
