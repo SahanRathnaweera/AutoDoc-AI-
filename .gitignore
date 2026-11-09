@@ -46,3 +46,19 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Engine audio dataset and uploaded files
+backend/datasets/
+backend/uploads/
+
+# Firebase local configuration
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Android generated build files
+android/build/
