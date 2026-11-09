@@ -81,7 +81,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       if (displayName != null && displayName.isNotEmpty) {
-        await user.updateDisplayName(displayName);
+        try {
+          await user.updateDisplayName(displayName);
+        } on fb_auth.FirebaseAuthException catch (error) {
+          AppLogger.warning('Failed to set Firebase display name: ${error.code}');
+        }
       }
 
       final now = DateTime.now();

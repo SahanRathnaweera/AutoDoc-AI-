@@ -12,9 +12,7 @@ service cloud.firestore {
     }
 
     function hasRole(role) {
-      return isAuthenticated() && 
-        (request.auth.token.role == role || 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role);
+      return isAuthenticated() && request.auth.token.get('role', '') == role;
     }
 
     function isAdmin() {
@@ -25,13 +23,16 @@ service cloud.firestore {
       return hasRole('inspector') || isAdmin();
     }
 
-    // 1. Users collection
-    // Users can read their own profile, create on registration, and update their personal details.
-    // Public profile details may be read by authenticated users.
+    // 1. User profiles. Privileged roles come from Firebase Auth custom claims.
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.role == 'client';
+      allow update: if isAdmin() ||
+        (isOwner(userId) &&
+         !request.resource.data.diff(resource.data).affectedKeys()
+           .hasAny(['uid', 'role']));
       allow delete: if isAdmin();
     }
 

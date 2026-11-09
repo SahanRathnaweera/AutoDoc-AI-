@@ -1,12 +1,39 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class ProfilePage extends StatelessWidget {
+import 'package:autodoc_ai/config/injection.dart';
+import 'package:autodoc_ai/core/usecase/usecase.dart';
+import 'package:autodoc_ai/core/utils/show_snackbar.dart';
+import 'package:autodoc_ai/features/authentication/domain/usecases/logout_user.dart';
+
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _signingOut = false;
+
+  Future<void> _logout() async {
+    setState(() => _signingOut = true);
+    final result = await getIt<LogoutUser>()(const NoParams());
+    if (!mounted) return;
+    setState(() => _signingOut = false);
+
+    result.fold(
+      (failure) => showCustomSnackBar(context, failure.message),
+      (_) => context.go('/auth'),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final user = getIt<FirebaseAuth>().currentUser;
+    final displayName = user?.displayName?.trim();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
@@ -33,18 +60,26 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 14),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Demo User',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    SizedBox(height: 4),
-                    Text('test@autodoc.ai'),
-                    SizedBox(height: 4),
-                    Text('Verified account'),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName == null || displayName.isEmpty
+                            ? 'AutoDoc user'
+                            : displayName,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(user?.email ?? ''),
+                      const SizedBox(height: 4),
+                      Text(
+                        user?.emailVerified == true
+                            ? 'Email verified'
+                            : 'Email not verified',
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -77,7 +112,7 @@ class ProfilePage extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         OutlinedButton.icon(
-          onPressed: () => context.go('/auth'),
+          onPressed: _signingOut ? null : _logout,
           icon: const Icon(Icons.logout),
           label: const Text('Log out'),
         ),
