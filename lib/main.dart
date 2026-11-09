@@ -10,8 +10,10 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {}
+  
   await configureDependencies();
   await FirebaseInitializer.initialize();
+  
   runApp(const AutoDocApp());
 }
 
