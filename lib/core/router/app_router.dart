@@ -12,12 +12,9 @@ import '../../features/marketplace/presentation/pages/marketplace_home_page.dart
 import '../../features/marketplace/presentation/pages/profile_page.dart';
 import '../../features/marketplace/presentation/pages/seller_listing_page.dart';
 import '../../features/marketplace/presentation/pages/vehicle_detail_page.dart';
+import '../../features/inspection/presentation/pages/engine_sound_recording_page.dart';
 
-GoRouter createAppRouter({
-  required bool authAvailable,
-  required bool Function() isSignedIn,
-  required Listenable authRefresh,
-}) => GoRouter(
+final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   refreshListenable: authRefresh,
   redirect: (context, state) {
@@ -26,14 +23,8 @@ GoRouter createAppRouter({
     return '/auth';
   },
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => SplashPage(isSignedIn: isSignedIn),
-    ),
-    GoRoute(
-      path: '/auth',
-      builder: (context, state) => AuthPage(authAvailable: authAvailable),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const SplashPage()),
+    GoRoute(path: '/auth', builder: (context, state) => const AuthPage()),
     GoRoute(
       path: '/dashboard',
       builder: (context, state) => const DashboardPage(),
@@ -46,7 +37,13 @@ GoRouter createAppRouter({
           path: 'diagnostics',
           builder: (context, state) => const DiagnosticPage(),
         ),
+
+        GoRoute(
+          path: 'engine-sound',
+          builder: (context, state) => const EngineSoundRecordingPage(),
+        ),
         GoRoute(path: 'ocr', builder: (context, state) => const OcrScreen()),
+
         GoRoute(
           path: 'report',
           builder: (context, state) => const InspectionReportPage(),

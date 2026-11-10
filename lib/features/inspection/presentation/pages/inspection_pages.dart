@@ -76,7 +76,7 @@ class DashboardPage extends StatelessWidget {
               _ActionTile(
                 icon: Icons.graphic_eq,
                 label: 'Check Engine Audio',
-                onTap: () => context.push('/dashboard/diagnostics'),
+                onTap: () => context.push('/dashboard/engine-sound'),
               ),
               _ActionTile(
                 icon: Icons.document_scanner_outlined,

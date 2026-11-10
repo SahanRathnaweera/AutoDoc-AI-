@@ -42,35 +42,21 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Local environment and credentials
-.env
-.env.*
-*.env
-*.env.*
-!.env.example
-!**/.env.example
-android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
-macos/Runner/GoogleService-Info.plist
-*serviceAccountKey*.json
-*service-account*.json
-credentials.json
-*.pem
-*.key
+# Widget Preview related
+.widget_preview/
 
-# Python environments, caches, and local generated artifacts
+# Python
 .venv/
 __pycache__/
 *.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-uploads/
-runs/
 
-# Backend local datasets, model binaries, and generated files
-/backend/data/
-/backend/models/
-/backend/runs/
-/backend/**/*.bak
-/backend/**/*.zip
+# Engine audio dataset and uploaded files
+backend/datasets/
+backend/uploads/
+
+# Firebase local configuration
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Android generated build files
+android/build/
