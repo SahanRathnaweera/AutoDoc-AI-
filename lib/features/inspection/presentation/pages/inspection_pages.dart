@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'dart:math';
 
+import 'package:camera/camera.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/utils/show_snackbar.dart';
@@ -124,84 +126,401 @@ class DashboardPage extends StatelessWidget {
   }
 }
 
-class GuidedCameraPage extends StatelessWidget {
+class _ScanAngle {
+  const _ScanAngle(this.label, this.hint, this.icon, this.flip);
+  final String label;
+  final String hint;
+  final IconData icon;
+  final bool flip;
+}
+
+class GuidedCameraPage extends StatefulWidget {
   const GuidedCameraPage({super.key});
 
   @override
+  State<GuidedCameraPage> createState() => _GuidedCameraPageState();
+}
+
+class _GuidedCameraPageState extends State<GuidedCameraPage>
+    with WidgetsBindingObserver {
+  static const _angles = [
+    _ScanAngle('Front left', 'Stand at the front-left corner of the car',
+        Icons.directions_car_filled_rounded, false),
+    _ScanAngle('Front right', 'Move to the front-right corner',
+        Icons.directions_car_filled_rounded, true),
+    _ScanAngle('Rear right', 'Move to the rear-right corner',
+        Icons.directions_car_filled_rounded, false),
+    _ScanAngle('Rear left', 'Move to the rear-left corner',
+        Icons.directions_car_filled_rounded, true),
+  ];
+
+  CameraController? _controller;
+  String? _error;
+  bool _capturing = false;
+  int _current = 0;
+  final Map<int, XFile> _photos = {};
+
+  double get _progress => _photos.length / _angles.length;
+  bool get _allDone => _photos.length == _angles.length;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (mounted) setState(() => _error = 'No camera found on this device.');
+        return;
+      }
+      final back = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+      final controller = CameraController(
+        back,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+      await controller.initialize();
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+      setState(() {
+        _controller = controller;
+        _error = null;
+      });
+    } on CameraException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.code.startsWith('CameraAccessDenied')
+            ? 'Camera permission denied. Enable it in Settings to scan.'
+            : 'Camera error: ${e.description ?? e.code}';
+      });
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Could not start camera: $e');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    if (state == AppLifecycleState.inactive) {
+      controller.dispose();
+      setState(() => _controller = null);
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  int? _nextEmptyIndex() {
+    for (var i = 0; i < _angles.length; i++) {
+      if (!_photos.containsKey(i)) return i;
+    }
+    return null;
+  }
+
+  Future<void> _capture() async {
+    final controller = _controller;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        controller.value.isTakingPicture ||
+        _capturing) {
+      return;
+    }
+    setState(() => _capturing = true);
+    try {
+      final file = await controller.takePicture();
+      if (!mounted) return;
+      setState(() {
+        _photos[_current] = file;
+        final next = _nextEmptyIndex();
+        if (next != null) _current = next;
+      });
+    } on CameraException catch (e) {
+      if (mounted) {
+        showCustomSnackBar(
+          context,
+          'Capture failed: ${e.description ?? e.code}',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _capturing = false);
+    }
+  }
+
+  void _retakeAll() {
+    setState(() {
+      _photos.clear();
+      _current = 0;
+    });
+  }
+
+  void _finish() {
+    // TODO: upload/process _photos
+    context.push('/dashboard/damage');
+  }
+
+  Widget _buildPreview() {
+    if (_error != null) {
+      return Container(
+        color: Colors.black87,
+        padding: const EdgeInsets.all(24),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.videocam_off, size: 48, color: Colors.white54),
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () {
+                setState(() => _error = null);
+                _initCamera();
+              },
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      );
+    }
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return const ColoredBox(
+        color: Colors.black,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final captured = _photos[_current];
+    if (captured != null) {
+      return Image.file(File(captured.path), fit: BoxFit.cover);
+    }
+    return FittedBox(
+      fit: BoxFit.cover,
+      child: SizedBox(
+        width: controller.value.previewSize?.height ?? 1,
+        height: controller.value.previewSize?.width ?? 1,
+        child: CameraPreview(controller),
+      ),
+    );
+  }
+
+  Widget _buildGuide() {
+    final angle = _angles[_current];
+    if (_photos.containsKey(_current)) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: Center(
+        child: Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(angle.flip ? -1.0 : 1.0, 1.0, 1.0),
+          child: Icon(
+            angle.icon,
+            size: 220,
+            color: _cyan.withValues(alpha: 0.35),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnails() {
+    return SizedBox(
+      height: 84,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (var i = 0; i < _angles.length; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            _thumb(i),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _thumb(int index) {
+    final photo = _photos[index];
+    final selected = index == _current;
+    return GestureDetector(
+      onTap: () => setState(() => _current = index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 70,
+            height: 56,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: _panel,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: selected
+                    ? _blue
+                    : photo != null
+                        ? Colors.greenAccent
+                        : Colors.white12,
+                width: selected ? 3 : 2,
+              ),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (photo != null)
+                  Image.file(File(photo.path), fit: BoxFit.cover)
+                else
+                  Icon(
+                    Icons.directions_car_outlined,
+                    color: selected ? Colors.white : Colors.white38,
+                  ),
+                if (photo != null)
+                  const Positioned(
+                    right: 2,
+                    top: 2,
+                    child: Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: Colors.greenAccent,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _angles[index].label,
+            style: TextStyle(
+              fontSize: 10,
+              color: selected ? Colors.white : Colors.white54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final angle = _angles[_current];
+    final reviewing = _photos.containsKey(_current);
     return Scaffold(
       backgroundColor: _navy,
       appBar: AppBar(
         title: const Text('Guided 360 scan'),
         backgroundColor: Colors.transparent,
+        actions: [
+          if (_photos.isNotEmpty)
+            TextButton(onPressed: _retakeAll, child: const Text('Reset')),
+        ],
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: _progress,
+                minHeight: 6,
+                backgroundColor: Colors.white12,
+                color: _cyan,
+              ),
+            ),
+          ),
           Expanded(
             child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              margin: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               decoration: BoxDecoration(
-                color: const Color(0xff1b303a),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: _cyan.withValues(alpha: 0.55)),
               ),
+              clipBehavior: Clip.antiAlias,
               child: Stack(
-                alignment: Alignment.center,
+                fit: StackFit.expand,
                 children: [
-                  const Icon(
-                    Icons.directions_car_filled_rounded,
-                    size: 210,
-                    color: Color(0xff39505a),
-                  ),
+                  _buildPreview(),
+                  _buildGuide(),
                   Positioned(
-                    top: 18,
-                    child: _CameraBadge(label: 'Front left · 25%'),
-                  ),
-                  Positioned(
-                    bottom: 26,
-                    child: Text(
-                      'Align the vehicle inside the guide',
-                      style: Theme.of(context).textTheme.bodySmall,
+                    top: 14,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: _CameraBadge(
+                        label:
+                            '${angle.label} · ${(_progress * 100).round()}%',
+                      ),
                     ),
                   ),
-                  Container(
-                    width: 110,
-                    height: 110,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: _cyan, width: 2),
-                      borderRadius: BorderRadius.circular(18),
+                  Positioned(
+                    bottom: 16,
+                    left: 12,
+                    right: 12,
+                    child: Center(
+                      child: Text(
+                        reviewing
+                            ? 'Captured. Tap the shutter to retake.'
+                            : angle.hint,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          SizedBox(
-            height: 70,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: 4,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (_, index) => Container(
-                width: 68,
-                decoration: BoxDecoration(
-                  color: index == 1 ? _blue : _panel,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.directions_car_outlined),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
+          _buildThumbnails(),
+          const SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.only(bottom: 22),
-            child: FloatingActionButton(
-              onPressed: () => context.push('/dashboard/damage'),
-              backgroundColor: Colors.white,
-              foregroundColor: _navy,
-              child: const Icon(Icons.camera_alt_outlined),
-            ),
+            padding: const EdgeInsets.only(bottom: 20),
+            child: _allDone
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _controller == null || _capturing
+                            ? null
+                            : _capture,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retake'),
+                      ),
+                      const SizedBox(width: 12),
+                      FilledButton.icon(
+                        onPressed: _finish,
+                        icon: const Icon(Icons.check),
+                        label: const Text('Done'),
+                      ),
+                    ],
+                  )
+                : FloatingActionButton(
+                    onPressed:
+                        _controller == null || _capturing ? null : _capture,
+                    backgroundColor: Colors.white,
+                    foregroundColor: _navy,
+                    child: _capturing
+                        ? const SizedBox.square(
+                            dimension: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.camera_alt_outlined),
+                  ),
           ),
         ],
       ),
@@ -429,7 +748,8 @@ class _InspectionReportPageState extends State<InspectionReportPage> {
         photosAnalyzed: 0,
         findings: const [],
         audioLabel: audioLabels[random.nextInt(audioLabels.length)],
-        audioNotice: 'Random demo placeholder only; no recording or audio model was used.',
+        audioNotice:
+            'Random demo placeholder only; no recording or audio model was used.',
         valuationNotice:
             'Random demo amount only; it is not a market valuation.',
         voiceSummary:
