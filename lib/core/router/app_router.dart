@@ -16,6 +16,12 @@ import '../../features/inspection/presentation/pages/engine_sound_recording_page
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
+  refreshListenable: authRefresh,
+  redirect: (context, state) {
+    final path = state.uri.path;
+    if (path == '/' || path == '/auth' || isSignedIn()) return null;
+    return '/auth';
+  },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashPage()),
     GoRoute(path: '/auth', builder: (context, state) => const AuthPage()),

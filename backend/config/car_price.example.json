@@ -1,0 +1,13 @@
+{
+  "columns": {
+    "make": "REPLACE_WITH_BRAND_COLUMN",
+    "model": "REPLACE_WITH_MODEL_COLUMN",
+    "year": "REPLACE_WITH_YEAR_COLUMN",
+    "mileage_km": "REPLACE_WITH_MILEAGE_COLUMN",
+    "price_lkr": "REPLACE_WITH_PRICE_COLUMN"
+  },
+  "currency": "LKR",
+  "price_multiplier": 1,
+  "mileage_multiplier": 1,
+  "group_column": null
+}

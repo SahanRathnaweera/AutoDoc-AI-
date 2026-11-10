@@ -1,0 +1,14 @@
+# Copy into your prepared dataset as data.yaml.
+# Replace path with your REAL absolute dataset path, using forward slashes on Windows.
+path: C:/YOUR_REPO/backend/data/processed/car_damage
+train: images/train
+val: images/val
+test: images/test
+# EXAMPLE ONLY: these IDs MUST match the .txt annotations exactly.
+names:
+  0: dent
+  1: scratch
+  2: crack
+  3: glass_shatter
+  4: lamp_broken
+  5: tire_flat
