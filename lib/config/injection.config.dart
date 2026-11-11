@@ -1,92 +1,172 @@
-import 'package:cloud_firestore/cloud_firestore.dart' as i974;
-import 'package:firebase_auth/firebase_auth.dart' as i59;
-import 'package:firebase_storage/firebase_storage.dart' as i457;
-import 'package:get_it/get_it.dart' as i174;
-import 'package:injectable/injectable.dart' as i526;
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// dart format width=80
 
-import '../core/firebase/firebase_module.dart' as i1053;
-import '../core/firebase/firebase_storage_service.dart' as i301;
-import '../core/firebase/firebase_token_provider.dart' as i582;
-import '../core/firebase/firestore_service.dart' as i494;
+// **************************************************************************
+// InjectableConfigGenerator
+// **************************************************************************
+
+// ignore_for_file: type=lint
+// coverage:ignore-file
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+
+import 'package:cloud_firestore/cloud_firestore.dart' as _i974;
+import 'package:firebase_auth/firebase_auth.dart' as _i59;
+import 'package:firebase_storage/firebase_storage.dart' as _i457;
+import 'package:get_it/get_it.dart' as _i174;
+import 'package:injectable/injectable.dart' as _i526;
+
+import '../core/firebase/firebase_module.dart' as _i1053;
+import '../core/firebase/firebase_storage_service.dart' as _i301;
+import '../core/firebase/firebase_token_provider.dart' as _i582;
+import '../core/firebase/firestore_service.dart' as _i495;
 import '../features/authentication/data/datasources/auth_remote_data_source.dart'
-    as i299;
+    as _i299;
 import '../features/authentication/data/repositories/auth_repository_impl.dart'
-    as i781;
+    as _i781;
+import '../features/authentication/data/repositories/social_auth_repository_impl.dart'
+    as _i838;
 import '../features/authentication/domain/repositories/auth_repository.dart'
-    as i716;
+    as _i716;
+import '../features/authentication/domain/repositories/social_auth_repository.dart'
+    as _i494;
 import '../features/authentication/domain/usecases/get_current_user.dart'
-    as i518;
-import '../features/authentication/domain/usecases/get_id_token.dart' as i1048;
-import '../features/authentication/domain/usecases/login_user.dart' as i395;
-import '../features/authentication/domain/usecases/logout_user.dart' as i792;
+    as _i518;
+import '../features/authentication/domain/usecases/get_id_token.dart' as _i1048;
+import '../features/authentication/domain/usecases/login_user.dart' as _i395;
+import '../features/authentication/domain/usecases/logout_user.dart' as _i792;
 import '../features/authentication/domain/usecases/observe_auth_state.dart'
-    as i390;
-import '../features/authentication/domain/usecases/register_user.dart' as i682;
-import '../features/authentication/domain/usecases/reset_password.dart' as i756;
+    as _i390;
+import '../features/authentication/domain/usecases/register_user.dart' as _i682;
+import '../features/authentication/domain/usecases/reset_password.dart'
+    as _i756;
 import '../features/authentication/domain/usecases/send_email_verification.dart'
-    as i763;
+    as _i763;
+import '../features/authentication/domain/usecases/send_phone_otp.dart'
+    as _i621;
+import '../features/authentication/domain/usecases/sign_in_with_social.dart'
+    as _i493;
+import '../features/authentication/domain/usecases/verify_phone_otp.dart'
+    as _i920;
 import '../features/storage/data/datasources/storage_remote_data_source.dart'
-    as i68;
+    as _i68;
+import '../features/storage/data/repositories/storage_repository_impl.dart'
+    as _i426;
+import '../features/storage/domain/repositories/storage_repository.dart'
+    as _i151;
+import '../features/storage/domain/usecases/delete_storage_file.dart' as _i409;
+import '../features/storage/domain/usecases/get_storage_download_url.dart'
+    as _i717;
+import '../features/storage/domain/usecases/upload_inspection_audio.dart'
+    as _i580;
+import '../features/storage/domain/usecases/upload_inspection_photo.dart'
+    as _i937;
+import '../features/storage/domain/usecases/upload_user_profile_photo.dart'
+    as _i567;
+import '../features/storage/domain/usecases/upload_vehicle_document.dart'
+    as _i679;
+import '../features/storage/domain/usecases/upload_vehicle_photo.dart' as _i130;
 
-extension GetItInjectableX on i174.GetIt {
-  i174.GetIt init({
+extension GetItInjectableX on _i174.GetIt {
+  // initializes the registration of main-scope dependencies inside of GetIt
+  _i174.GetIt init({
     String? environment,
-    i526.EnvironmentFilter? environmentFilter,
+    _i526.EnvironmentFilter? environmentFilter,
   }) {
-    final gh = i526.GetItHelper(this, environment, environmentFilter);
+    final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final firebaseModule = _$FirebaseModule();
-    gh.lazySingleton<i59.FirebaseAuth>(() => firebaseModule.firebaseAuth);
-    gh.lazySingleton<i974.FirebaseFirestore>(() => firebaseModule.firestore);
-    gh.lazySingleton<i457.FirebaseStorage>(
+    gh.lazySingleton<_i59.FirebaseAuth>(() => firebaseModule.firebaseAuth);
+    gh.lazySingleton<_i974.FirebaseFirestore>(() => firebaseModule.firestore);
+    gh.lazySingleton<_i457.FirebaseStorage>(
       () => firebaseModule.firebaseStorage,
     );
-    gh.lazySingleton<i299.AuthRemoteDataSource>(
-      () => i299.AuthRemoteDataSourceImpl(
-        gh<i59.FirebaseAuth>(),
-        gh<i974.FirebaseFirestore>(),
+    gh.lazySingleton<_i494.SocialAuthRepository>(
+      () => _i838.SocialAuthRepositoryImpl(
+        gh<_i59.FirebaseAuth>(),
+        gh<_i974.FirebaseFirestore>(),
       ),
     );
-    gh.lazySingleton<i301.FirebaseStorageService>(
-      () => i301.FirebaseStorageService(gh<i457.FirebaseStorage>()),
+    gh.lazySingleton<_i299.AuthRemoteDataSource>(
+      () => _i299.AuthRemoteDataSourceImpl(
+        gh<_i59.FirebaseAuth>(),
+        gh<_i974.FirebaseFirestore>(),
+      ),
     );
-    gh.lazySingleton<i494.FirestoreService>(
-      () => i494.FirestoreService(gh<i974.FirebaseFirestore>()),
+    gh.lazySingleton<_i301.FirebaseStorageService>(
+      () => _i301.FirebaseStorageService(gh<_i457.FirebaseStorage>()),
     );
-    gh.lazySingleton<i582.FirebaseTokenProvider>(
-      () => i582.FirebaseTokenProvider(gh<i59.FirebaseAuth>()),
+    gh.lazySingleton<_i495.FirestoreService>(
+      () => _i495.FirestoreService(gh<_i974.FirebaseFirestore>()),
     );
-    gh.lazySingleton<i716.AuthRepository>(
-      () => i781.AuthRepositoryImpl(gh<i299.AuthRemoteDataSource>()),
+    gh.lazySingleton<_i582.FirebaseTokenProvider>(
+      () => _i582.FirebaseTokenProvider(gh<_i59.FirebaseAuth>()),
     );
-    gh.lazySingleton<i68.StorageRemoteDataSource>(
-      () => i68.StorageRemoteDataSourceImpl(gh<i301.FirebaseStorageService>()),
+    gh.lazySingleton<_i493.SignInWithSocial>(
+      () => _i493.SignInWithSocial(gh<_i494.SocialAuthRepository>()),
     );
-    gh.lazySingleton<i518.GetCurrentUser>(
-      () => i518.GetCurrentUser(gh<i716.AuthRepository>()),
+    gh.lazySingleton<_i716.AuthRepository>(
+      () => _i781.AuthRepositoryImpl(gh<_i299.AuthRemoteDataSource>()),
     );
-    gh.lazySingleton<i1048.GetIdToken>(
-      () => i1048.GetIdToken(gh<i716.AuthRepository>()),
+    gh.lazySingleton<_i621.SendPhoneOtp>(
+      () => _i621.SendPhoneOtp(gh<_i716.AuthRepository>()),
     );
-    gh.lazySingleton<i395.LoginUser>(
-      () => i395.LoginUser(gh<i716.AuthRepository>()),
+    gh.lazySingleton<_i920.VerifyPhoneOtp>(
+      () => _i920.VerifyPhoneOtp(gh<_i716.AuthRepository>()),
     );
-    gh.lazySingleton<i792.LogoutUser>(
-      () => i792.LogoutUser(gh<i716.AuthRepository>()),
+    gh.lazySingleton<_i68.StorageRemoteDataSource>(
+      () =>
+          _i68.StorageRemoteDataSourceImpl(gh<_i301.FirebaseStorageService>()),
     );
-    gh.lazySingleton<i390.ObserveAuthState>(
-      () => i390.ObserveAuthState(gh<i716.AuthRepository>()),
+    gh.lazySingleton<_i518.GetCurrentUser>(
+      () => _i518.GetCurrentUser(gh<_i716.AuthRepository>()),
     );
-    gh.lazySingleton<i682.RegisterUser>(
-      () => i682.RegisterUser(gh<i716.AuthRepository>()),
+    gh.lazySingleton<_i1048.GetIdToken>(
+      () => _i1048.GetIdToken(gh<_i716.AuthRepository>()),
     );
-    gh.lazySingleton<i756.ResetPassword>(
-      () => i756.ResetPassword(gh<i716.AuthRepository>()),
+    gh.lazySingleton<_i395.LoginUser>(
+      () => _i395.LoginUser(gh<_i716.AuthRepository>()),
     );
-    gh.lazySingleton<i763.SendEmailVerification>(
-      () => i763.SendEmailVerification(gh<i716.AuthRepository>()),
+    gh.lazySingleton<_i792.LogoutUser>(
+      () => _i792.LogoutUser(gh<_i716.AuthRepository>()),
+    );
+    gh.lazySingleton<_i390.ObserveAuthState>(
+      () => _i390.ObserveAuthState(gh<_i716.AuthRepository>()),
+    );
+    gh.lazySingleton<_i682.RegisterUser>(
+      () => _i682.RegisterUser(gh<_i716.AuthRepository>()),
+    );
+    gh.lazySingleton<_i756.ResetPassword>(
+      () => _i756.ResetPassword(gh<_i716.AuthRepository>()),
+    );
+    gh.lazySingleton<_i763.SendEmailVerification>(
+      () => _i763.SendEmailVerification(gh<_i716.AuthRepository>()),
+    );
+    gh.lazySingleton<_i151.StorageRepository>(
+      () => _i426.StorageRepositoryImpl(gh<_i68.StorageRemoteDataSource>()),
+    );
+    gh.lazySingleton<_i409.DeleteStorageFile>(
+      () => _i409.DeleteStorageFile(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i717.GetStorageDownloadUrl>(
+      () => _i717.GetStorageDownloadUrl(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i580.UploadInspectionAudio>(
+      () => _i580.UploadInspectionAudio(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i937.UploadInspectionPhoto>(
+      () => _i937.UploadInspectionPhoto(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i567.UploadUserProfilePhoto>(
+      () => _i567.UploadUserProfilePhoto(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i679.UploadVehicleDocument>(
+      () => _i679.UploadVehicleDocument(gh<_i151.StorageRepository>()),
+    );
+    gh.lazySingleton<_i130.UploadVehiclePhoto>(
+      () => _i130.UploadVehiclePhoto(gh<_i151.StorageRepository>()),
     );
     return this;
   }
 }
 
-class _$FirebaseModule extends i1053.FirebaseModule {}
+class _$FirebaseModule extends _i1053.FirebaseModule {}

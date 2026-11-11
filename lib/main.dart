@@ -8,6 +8,9 @@ import 'config/injection.dart';
 import 'core/firebase/firebase_initializer.dart';
 import 'core/router/app_router.dart';
 
+import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -15,6 +18,8 @@ Future<void> main() async {
   } catch (_) {}
   await configureDependencies();
   final firebaseReady = await FirebaseInitializer.initialize();
+  if (firebaseReady) await getIt<FirebaseAuth>().signOut();
+  await themeController.load();
   runApp(AutoDocApp(auth: firebaseReady ? getIt<FirebaseAuth>() : null));
 }
 
@@ -53,30 +58,18 @@ class _AutoDocAppState extends State<AutoDocApp> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp.router(
+ @override
+ Widget build(BuildContext context) {
+  return ValueListenableBuilder<ThemeMode>(
+    valueListenable: themeController,
+    builder: (context, mode, _) => MaterialApp.router(
       title: 'AutoDoc AI',
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xff1479e8),
-        brightness: Brightness.light,
-        inputDecorationTheme: const InputDecorationTheme(
-          filled: true,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(14)),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xff1479e8),
-        brightness: Brightness.dark,
-      ),
-      themeMode: ThemeMode.dark,
-    );
-  }
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: mode,
+    ),
+  );
+}
 }

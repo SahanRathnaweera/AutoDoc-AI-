@@ -1,29 +1,64 @@
-import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
+ 
+import '../../../../core/theme/theme_controller.dart';
+ 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
-
+ 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
-
+ 
 class _SettingsPageState extends State<SettingsPage> {
   bool notificationsEnabled = true;
   bool scanRemindersEnabled = true;
   bool biometricLockEnabled = false;
-
+ 
   @override
   Widget build(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+    );
+ 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          Text(
-            'Preferences',
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
+          Text('Appearance', style: titleStyle),
+          const SizedBox(height: 12),
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: themeController,
+            builder: (context, mode, _) => SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<ThemeMode>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    icon: Icon(Icons.brightness_auto_outlined),
+                    label: Text('System'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: Icon(Icons.light_mode_outlined),
+                    label: Text('Light'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: Icon(Icons.dark_mode_outlined),
+                    label: Text('Dark'),
+                  ),
+                ],
+                selected: {mode},
+                onSelectionChanged: (selection) =>
+                    themeController.setMode(selection.first),
+              ),
+            ),
           ),
+          const Divider(height: 36),
+          Text('Preferences', style: titleStyle),
           const SizedBox(height: 8),
           SwitchListTile(
             value: notificationsEnabled,
@@ -69,9 +104,12 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-
+ 
   void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 }
+ 
+

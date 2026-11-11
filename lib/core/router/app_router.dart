@@ -2,16 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../ocr_screen.dart';
+import '../../features/inspection/presentation/pages/dashboard_page.dart';
+import '../../features/inspection/presentation/pages/inspection_pages.dart'
+    hide DashboardPage;
 
 import '../../features/auth/presentation/pages/auth_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
-import '../../features/inspection/presentation/pages/inspection_pages.dart';
+
 import '../../features/inspection/presentation/pages/settings_page.dart';
 import '../../features/marketplace/presentation/pages/damage_overlay_page.dart';
 import '../../features/marketplace/presentation/pages/marketplace_home_page.dart';
 import '../../features/marketplace/presentation/pages/profile_page.dart';
 import '../../features/marketplace/presentation/pages/seller_listing_page.dart';
 import '../../features/marketplace/presentation/pages/vehicle_detail_page.dart';
+
+import '../../features/auth/presentation/pages/sign_up_page.dart';
 
 GoRouter createAppRouter({
   required bool authAvailable,
@@ -22,7 +27,7 @@ GoRouter createAppRouter({
   refreshListenable: authRefresh,
   redirect: (context, state) {
     final path = state.uri.path;
-    if (path == '/' || path == '/auth' || isSignedIn()) return null;
+    if (path == '/' || path.startsWith('/auth') || isSignedIn()) return null;
     return '/auth';
   },
   routes: [
@@ -30,9 +35,20 @@ GoRouter createAppRouter({
       path: '/',
       builder: (context, state) => SplashPage(isSignedIn: isSignedIn),
     ),
+    
     GoRoute(
       path: '/auth',
-      builder: (context, state) => AuthPage(authAvailable: authAvailable),
+      builder: (context, state) => AuthPage(
+        authAvailable: authAvailable,
+        initialEmail: state.extra is String ? state.extra as String : '',
+      ),
+      routes: [
+        GoRoute(
+          path: 'signup',
+          builder: (context, state) =>
+              SignUpPage(authAvailable: authAvailable),
+        ),
+      ],
     ),
     GoRoute(
       path: '/dashboard',
