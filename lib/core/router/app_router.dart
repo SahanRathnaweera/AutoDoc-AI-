@@ -1,3 +1,4 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +8,7 @@ import '../../features/inspection/presentation/pages/inspection_pages.dart'
     hide DashboardPage;
 
 import '../../features/auth/presentation/pages/auth_page.dart';
+import '../../features/auth/presentation/pages/sign_up_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 
 import '../../features/inspection/presentation/pages/settings_page.dart';
@@ -15,8 +17,7 @@ import '../../features/marketplace/presentation/pages/marketplace_home_page.dart
 import '../../features/marketplace/presentation/pages/profile_page.dart';
 import '../../features/marketplace/presentation/pages/seller_listing_page.dart';
 import '../../features/marketplace/presentation/pages/vehicle_detail_page.dart';
-
-import '../../features/auth/presentation/pages/sign_up_page.dart';
+import '../../features/inspection/presentation/pages/engine_sound_recording_page.dart';
 
 GoRouter createAppRouter({
   required bool authAvailable,
@@ -35,7 +36,6 @@ GoRouter createAppRouter({
       path: '/',
       builder: (context, state) => SplashPage(isSignedIn: isSignedIn),
     ),
-    
     GoRoute(
       path: '/auth',
       builder: (context, state) => AuthPage(
@@ -62,6 +62,10 @@ GoRouter createAppRouter({
           path: 'diagnostics',
           builder: (context, state) => const DiagnosticPage(),
         ),
+        GoRoute(
+          path: 'engine-sound',
+          builder: (context, state) => const EngineSoundRecordingPage(),
+        ),
         GoRoute(path: 'ocr', builder: (context, state) => const OcrScreen()),
         GoRoute(
           path: 'report',
@@ -69,7 +73,13 @@ GoRouter createAppRouter({
         ),
         GoRoute(
           path: 'damage',
-          builder: (context, state) => const DamageOverlayPage(),
+          builder: (context, state) {
+            // 360 scan photos `extra` එකෙන් එනවා
+            final photos = state.extra is List<XFile>
+                ? state.extra! as List<XFile>
+                : const <XFile>[];
+            return DamageOverlayPage(photos: photos);
+          },
         ),
       ],
     ),
