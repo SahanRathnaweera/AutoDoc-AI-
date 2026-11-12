@@ -1,134 +1,171 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../core/utils/brand_logo.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/auth_mode.dart';
 import '../widgets/auth_form.dart';
+import '../widgets/auth_hero.dart';
+
+
+const kHasLoggedInBefore = 'has_logged_in_before';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key, required this.authAvailable});
+  const AuthPage({
+    super.key,
+    required this.authAvailable,
+    this.initialEmail = '',
+  });
 
   final bool authAvailable;
+
+
+  final String initialEmail;
 
   @override
   State<AuthPage> createState() => _AuthPageState();
 }
 
 class _AuthPageState extends State<AuthPage> {
-  AuthMode _mode = AuthMode.login;
-  bool _busy = false;
+  bool _returningUser = false;
+
+  bool get _justCreated => widget.initialEmail.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFlag();
+  }
+
+  Future<void> _loadFlag() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = prefs.getBool(kHasLoggedInBefore) ?? false;
+      if (mounted && value != _returningUser) {
+        setState(() => _returningUser = value);
+      }
+    } catch (_) {
+      
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isLogin = _mode == AuthMode.login;
+    final text = Theme.of(context).textTheme;
+    final p = AppPalette.of(context);
+
+ 
+    final showWelcomeBack = _returningUser && !_justCreated;
+    final title = showWelcomeBack ? 'Welcome back' : 'Log in to AUTODOC';
+    final subtitle = showWelcomeBack
+        ? 'Log in to continue your inspections.'
+        : _justCreated
+            ? 'Enter your password to continue.'
+            : 'Log in, or create an account to get started.';
 
     return Scaffold(
-      backgroundColor: const Color(0xff071722),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 390),
-              child: Theme(
-                data: ThemeData(
-                  useMaterial3: true,
-                  colorSchemeSeed: const Color(0xff1479e8),
-                  brightness: Brightness.light,
-                  inputDecorationTheme: const InputDecorationTheme(
-                    filled: true,
-                    fillColor: Color(0xfff3f6f9),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(14)),
-                      borderSide: BorderSide.none,
+      backgroundColor: p.bg,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const AuthHero(height: 270),
+            Transform.translate(
+              offset: const Offset(0, -28),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 30, 24, 32),
+                decoration: BoxDecoration(
+                  color: p.bg,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(32),
+                  ),
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_justCreated) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE6F6EC),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFF2E9E5B),
+                              ),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Color(0xFF2E9E5B),
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Account created successfully. '
+                                    'Please log in.',
+                                    style: TextStyle(
+                                      color: Color(0xFF14532D),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                        Text(
+                          title,
+                          style: text.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          subtitle,
+                          style: text.bodyLarge?.copyWith(color: p.muted),
+                        ),
+                        const SizedBox(height: 26),
+                        AuthForm(
+                          mode: AuthMode.login,
+                          authAvailable: widget.authAvailable,
+                          initialEmail: widget.initialEmail,
+                          onRegistered: (_) {},
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _returningUser
+                                  ? "Don't have an account?"
+                                  : 'New here?',
+                              style: text.bodyMedium?.copyWith(color: p.muted),
+                            ),
+                            TextButton(
+                              onPressed: () => context.push('/auth/signup'),
+                              child: Text(
+                                _returningUser ? 'Sign up' : 'Create an account',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                child: Builder(
-                  builder: (panelContext) {
-                    final panelTheme = Theme.of(panelContext);
-                    return Container(
-                      padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(26),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 28,
-                            offset: Offset(0, 14),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Center(child: BrandLogo(width: 150)),
-                          const SizedBox(height: 24),
-                          Text(
-                            isLogin ? 'Welcome back' : 'Create your account',
-                            style: panelTheme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            isLogin
-                                ? 'Sign in to continue your vehicle journey.'
-                                : 'Start trusted vehicle diagnostics with AutoDoc AI.',
-                            style: panelTheme.textTheme.bodyMedium?.copyWith(
-                              color: panelTheme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          SegmentedButton<AuthMode>(
-                            segments: const [
-                              ButtonSegment(
-                                value: AuthMode.login,
-                                label: Text('Log in'),
-                              ),
-                              ButtonSegment(
-                                value: AuthMode.register,
-                                label: Text('Register'),
-                              ),
-                            ],
-                            selected: {_mode},
-                            onSelectionChanged: _busy
-                                ? null
-                                : (selection) {
-                                    setState(() => _mode = selection.first);
-                                  },
-                          ),
-                          const SizedBox(height: 28),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 280),
-                            transitionBuilder: (child, animation) =>
-                                FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0.04, 0),
-                                      end: Offset.zero,
-                                    ).animate(animation),
-                                    child: child,
-                                  ),
-                                ),
-                            child: AuthForm(
-                              key: ValueKey(_mode),
-                              mode: _mode,
-                              authAvailable: widget.authAvailable,
-                              onBusyChanged: (busy) {
-                                setState(() => _busy = busy);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
