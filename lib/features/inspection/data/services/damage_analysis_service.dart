@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:camera/camera.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+
+import 'inspection_backend.dart';
 
 class DamageDetection {
   const DamageDetection({
@@ -21,15 +21,23 @@ class DamageDetection {
   final List<double>? box;
 
   factory DamageDetection.fromJson(Map<String, dynamic> json) {
-    final rawBox = json['box'];
+    final rawBox = json['bbox'];
+    final validBox = rawBox is List &&
+        rawBox.length == 4 &&
+        rawBox.every((value) => value is num && value.isFinite);
     return DamageDetection(
       label: (json['label'] ?? 'Damage').toString(),
       detail: json['detail']?.toString(),
       confidence: (json['confidence'] as num?)?.toDouble(),
-      box: rawBox is List
-          ? rawBox.map((e) => (e as num).toDouble()).toList()
-          : null,
+      box: validBox ? _normalizedBox(rawBox.cast<num>()) : null,
     );
+  }
+  static List<double>? _normalizedBox(List<num> coordinates) {
+    final bounds = coordinates.map((value) => value.clamp(0, 1).toDouble()).toList();
+    final width = bounds[2] - bounds[0];
+    final height = bounds[3] - bounds[1];
+    if (width <= 0 || height <= 0) return null;
+    return [bounds[0], bounds[1], width, height];
   }
 }
 
@@ -39,17 +47,26 @@ class PhotoDamageResult {
     required this.available,
     this.notice,
     this.detections = const [],
+    this.imageWidth,
+    this.imageHeight,
   });
 
   final int imageIndex;
   final bool available;
   final String? notice;
   final List<DamageDetection> detections;
+  final int? imageWidth;
+  final int? imageHeight;
 
-  factory PhotoDamageResult.fromJson(Map<String, dynamic> json) {
+  factory PhotoDamageResult.fromJson(
+    Map<String, dynamic> json, {
+    required int imageIndex,
+  }) {
     final raw = json['detections'];
     return PhotoDamageResult(
-      imageIndex: (json['image_index'] as num?)?.toInt() ?? 0,
+      imageIndex: imageIndex,
+      imageWidth: (json['image_width'] as num?)?.toInt(),
+      imageHeight: (json['image_height'] as num?)?.toInt(),
       available: json['available'] as bool? ?? true,
       notice: json['notice']?.toString(),
       detections: raw is List
@@ -62,54 +79,55 @@ class PhotoDamageResult {
 }
 
 class DamageAnalysisService {
-  DamageAnalysisService({http.Client? client})
-    : _client = client ?? http.Client();
+  DamageAnalysisService({http.Client? client, String? baseUrl})
+    : _client = client ?? http.Client(),
+      _baseUrl = (baseUrl ?? InspectionBackend.baseUrl).trim();
 
   final http.Client _client;
-
-  // Android emulator එකෙන් PC එකේ localhost = 10.0.2.2
-  static String get _baseUrl =>
-      dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8000';
-
-  // ඔයාගේ FastAPI endpoint එකට ගැලපෙන්න මේක වෙනස් කරන්න
-  static const _endpoint = '/damage/analyze';
-
-  Future<String?> _token() async {
-    try {
-      return await FirebaseAuth.instance.currentUser?.getIdToken();
-    } catch (_) {
-      return null; // Firebase configure වෙලා නැති විට
-    }
-  }
+  final String _baseUrl;
 
   Future<List<PhotoDamageResult>> analyzeDamage(List<XFile> photos) async {
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$_baseUrl$_endpoint'),
-    );
+    final endpoint = InspectionBackend.endpoint(_baseUrl, '/api/v1/damage');
+    final results = <PhotoDamageResult>[];
+    for (var index = 0; index < photos.length; index++) {
+      final photo = photos[index];
+      final request = http.MultipartRequest('POST', endpoint);
+      request.fields['vehicle_type'] = 'car';
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'image',
+          await photo.readAsBytes(),
+          filename: photo.name.isEmpty ? 'scan-${index + 1}.jpg' : photo.name,
+        ),
+      );
+      late final http.Response response;
+      try {
+        response = await _client
+            .send(request)
+            .then(http.Response.fromStream)
+            .timeout(const Duration(minutes: 3));
+      } on http.ClientException {
+        throw Exception(
+          'Could not connect to the damage service at $_baseUrl. '
+          'Confirm the backend is running and reachable from this device.',
+        );
+      }
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        results.add(PhotoDamageResult(
+          imageIndex: index,
+          available: false,
+          notice: InspectionBackend.errorMessage(response, 'Damage analysis'),
+        ));
+        continue;
+      }
 
-    final token = await _token();
-    if (token != null) request.headers['Authorization'] = 'Bearer $token';
-
-    for (final p in photos) {
-      request.files.add(await http.MultipartFile.fromPath('files', p.path));
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      if (decoded is! Map<String, dynamic> || decoded['detections'] is! List) {
+        throw const FormatException('The damage service returned an invalid response.');
+      }
+      results.add(PhotoDamageResult.fromJson(decoded, imageIndex: index));
     }
-
-    final streamed = await request.send().timeout(const Duration(seconds: 60));
-    final response = await http.Response.fromStream(streamed);
-
-    if (response.statusCode != 200) {
-      throw Exception('Server error ${response.statusCode}');
-    }
-
-    final decoded = jsonDecode(response.body);
-    final List list = decoded is List
-        ? decoded
-        : (decoded is Map ? (decoded['results'] as List? ?? const []) : const []);
-
-    return list
-        .map((e) => PhotoDamageResult.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return results;
   }
 
   void close() => _client.close();

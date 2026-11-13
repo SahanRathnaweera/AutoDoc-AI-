@@ -39,6 +39,9 @@ In Firebase Console:
 2. Click **Email/Password**.
 3. Toggle **Enable** (and optionally Email link / passwordless).
 4. Click **Save**.
+5. Enable the **Google** provider and select a project support email.
+6. For web, add the app hostname under **Authentication > Settings > Authorized domains**. For local browser testing, add `localhost` if it is missing.
+7. For Android, run `./gradlew signingReport` from `android` (or `.\gradlew signingReport` on PowerShell). Register the SHA-1 and SHA-256 for the signing key you use. Download the updated `google-services.json` into `android/app/` after enabling Google sign-in. If you use Dart defines without that file, supply `GOOGLE_SERVER_CLIENT_ID` with the **Web application** OAuth client ID from the same Firebase project.
 
 ### Step 5: Provision Cloud Firestore
 In Firebase Console:
@@ -83,13 +86,11 @@ For the Python/FastAPI backend team:
 4. **Never commit `serviceAccountKey.json` to Git!** Ensure it is in `.gitignore`.
 
 ### Step 10: Run the Application
-The app initializes Firebase before setting up its Firebase-backed services. If
-initialization fails, startup reports an error; run `flutterfire configure` for
-the target platform and verify its generated configuration.
+Run `flutterfire configure` for the target platform to generate `lib/firebase_options.dart`, or use the checked-in options with build-time values. For the second approach, copy `.env.example` to `.env`, replace the placeholders for your platform, and run Flutter with `--dart-define-from-file=.env`. Use Firebase **client** configuration only in Dart defines.
 
 ```bash
 flutter pub get
-flutter run
+flutter run --dart-define-from-file=.env
 ```
 
 ---

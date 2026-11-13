@@ -16,6 +16,11 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
+Run this command from `backend/`. The `main:app` entry point runs the separate
+engine audio upload API. For a physical phone on the same network, start the
+inspection API with `uvicorn app.main:app --host 0.0.0.0 --port 8000` and pass
+your computer's LAN address as `API_BASE_URL` in the Flutter debug build.
+
 The health endpoint is available at `http://127.0.0.1:8000/health`.
 
 ## Flutter inspection report

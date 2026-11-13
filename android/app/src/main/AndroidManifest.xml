@@ -1,6 +1,8 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <!-- Audio Recording Permission -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
@@ -8,7 +10,7 @@
     <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
-        android:label="autodoc_ai"
+        android:label="AutoDoc AI"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
