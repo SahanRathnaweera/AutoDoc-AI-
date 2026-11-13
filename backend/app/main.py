@@ -521,34 +521,39 @@ def inspection(
             **valuation(req),
         }
 
-    damage_key = f"{req.vehicle_type}_damage"
-    damage_available = (
-        gemini_configured() if req.vehicle_type == "bike" else damage_key in loaded
-    )
-    if not damage_available:
-        damage_notice = (
-            "Visual analysis unavailable: configure GEMINI_API_KEY."
-            if req.vehicle_type == "bike"
+    if req.vehicle_type == "bike":
+        damage_unavailable = (
+            None if gemini_configured()
+            else "Visual analysis unavailable: configure GEMINI_API_KEY."
+        )
+    else:
+        damage_unavailable = (
+            None if "car_damage" in loaded
             else "Visual analysis unavailable: the car damage model is not installed."
         )
-        photos = [
-            {
-                "image_index": index,
-                "available": False,
-                "detections": [],
-                "notice": damage_notice,
-            }
-            for index in range(len(images))
-        ]
-    else:
-        photos = [
-            {
-                "image_index": index,
-                "available": True,
-                **detect(req.vehicle_type, file),
-            }
-            for index, file in enumerate(images)
-        ]
+
+    photos = []
+    for index, file in enumerate(images):
+        notice = damage_unavailable
+        if notice is None:
+            try:
+                photos.append({
+                    "image_index": index,
+                    "available": True,
+                    **detect(req.vehicle_type, file),
+                })
+                continue
+            except HTTPException as error:
+                if error.status_code < 500:
+                    raise
+                notice = str(error.detail)
+
+        photos.append({
+            "image_index": index,
+            "available": False,
+            "detections": [],
+            "notice": notice,
+        })
 
     audio_artifact = loaded.get(f"{req.vehicle_type}_audio")
     if audio_artifact is None:
@@ -574,16 +579,17 @@ def inspection(
 
     count = sum(len(photo["detections"]) for photo in photos)
     unavailable = []
-    if not damage_available:
+    if any(not photo["available"] for photo in photos):
         unavailable.append("visual analysis")
     if not price.get("available", False):
         unavailable.append("valuation")
     if not sound.get("available", False):
         unavailable.append("audio classification")
     status = "partial" if unavailable else "complete"
+    analyzed = sum(photo["available"] for photo in photos)
     visual_summary = (
-        f"{count} possible visual findings across the photos."
-        if damage_available
+        f"{count} possible visual findings across {analyzed} analyzed photos."
+        if analyzed
         else "Visual analysis was unavailable."
     )
     audio_summary = (

@@ -67,16 +67,13 @@ GoRouter createAppRouter({
         GoRoute(path: 'ocr', builder: (context, state) => const OcrScreen()),
         GoRoute(
           path: 'report',
-          builder: (context, state) => const InspectionReportPage(),
+          builder: (context, state) =>
+              InspectionReportPage(photos: _photosFrom(state)),
         ),
         GoRoute(
           path: 'damage',
-          builder: (context, state) {
-            final photos = state.extra is List<XFile>
-                ? state.extra! as List<XFile>
-                : const <XFile>[];
-            return DamageOverlayPage(photos: photos);
-          },
+          builder: (context, state) =>
+              DamageOverlayPage(photos: _photosFrom(state)),
         ),
       ],
     ),
@@ -91,7 +88,7 @@ GoRouter createAppRouter({
           routes: [
             GoRoute(
               path: 'damage',
-              builder: (context, state) => const DamageOverlayPage(),
+              builder: (context, state) => const DamageOverlayPage(showDemo: true),
             ),
           ],
         ),
@@ -115,3 +112,6 @@ GoRouter createAppRouter({
     ),
   ],
 );
+
+List<XFile> _photosFrom(GoRouterState state) =>
+    state.extra is List<XFile> ? state.extra! as List<XFile> : const [];

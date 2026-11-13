@@ -185,7 +185,10 @@ class _AuthFormState extends State<AuthForm> {
   Future<void> _runAuthAction(Future<void> Function() action) async {
     if (_busy) return;
     if (!widget.authAvailable) {
-      showCustomSnackBar(context, 'Firebase Authentication is unavailable.');
+      showCustomSnackBar(
+        context,
+        'Firebase Authentication is unavailable. Configure Firebase for this device.',
+      );
       return;
     }
 

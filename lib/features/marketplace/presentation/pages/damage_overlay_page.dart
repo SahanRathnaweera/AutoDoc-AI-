@@ -1,15 +1,21 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../inspection/data/services/damage_analysis_service.dart';
 
 class DamageOverlayPage extends StatefulWidget {
-  const DamageOverlayPage({super.key, this.photos = const []});
+  const DamageOverlayPage({
+    super.key,
+    this.photos = const [],
+    this.showDemo = false,
+  });
 
   /// 360 scan එකේ photos (marketplace එකෙන් open කරන විට හිස්).
   final List<XFile> photos;
+  final bool showDemo;
 
   @override
   State<DamageOverlayPage> createState() => _DamageOverlayPageState();
@@ -31,6 +37,7 @@ class _DamageOverlayPageState extends State<DamageOverlayPage> {
 
   final _api = DamageAnalysisService();
   final _pageController = PageController();
+  final _photoBytes = <int, Future<Uint8List>>{};
   List<PhotoDamageResult>? _results;
   String? _error;
   bool _loading = false;
@@ -54,6 +61,7 @@ class _DamageOverlayPageState extends State<DamageOverlayPage> {
     setState(() {
       _loading = true;
       _error = null;
+      _results = null;
     });
     try {
       final results = await _api.analyzeDamage(widget.photos);
@@ -80,8 +88,19 @@ class _DamageOverlayPageState extends State<DamageOverlayPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Damage overlay')),
-      body: widget.photos.isEmpty ? _demo(theme) : _content(theme),
+      appBar: AppBar(
+        title: Text(widget.showDemo ? 'Demo damage overlay' : 'Damage overlay'),
+      ),
+      body: widget.showDemo
+          ? _demo(theme)
+          : widget.photos.isEmpty
+          ? Center(
+              child: FilledButton(
+                onPressed: () => context.go('/dashboard/camera'),
+                child: const Text('Start a new guided scan'),
+              ),
+            )
+          : _content(theme),
     );
   }
 
@@ -201,24 +220,55 @@ class _DamageOverlayPageState extends State<DamageOverlayPage> {
         InteractiveViewer(
           minScale: 1,
           maxScale: 4,
-          child: LayoutBuilder(
-            builder: (context, c) => Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.file(
-                  File(widget.photos[index].path),
-                  fit: BoxFit.contain,
-                ),
-                for (var i = 0; i < detections.length; i++)
-                  if (detections[i].box != null)
-                    _box(
-                      detections[i].box!,
-                      c,
-                      i == _selected && index == _page,
-                      i,
-                    ),
-              ],
+          child: FutureBuilder<Uint8List>(
+            future: _photoBytes.putIfAbsent(
+              index,
+              widget.photos[index].readAsBytes,
             ),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(child: Text('Could not open this photo.'));
+              }
+              final bytes = snapshot.data;
+              if (bytes == null) return const SizedBox.shrink();
+
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = result?.imageWidth;
+                  final height = result?.imageHeight;
+                  final viewport = constraints.biggest;
+                  final imageSize = width != null && height != null &&
+                          width > 0 && height > 0
+                      ? applyBoxFit(
+                          BoxFit.contain,
+                          Size(width.toDouble(), height.toDouble()),
+                          viewport,
+                        ).destination
+                      : viewport;
+                  return Center(
+                    child: SizedBox.fromSize(
+                      size: imageSize,
+                      child: LayoutBuilder(
+                        builder: (context, imageConstraints) => Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.memory(bytes, fit: BoxFit.contain),
+                            for (var i = 0; i < detections.length; i++)
+                              if (detections[i].box != null)
+                                _box(
+                                  detections[i].box!,
+                                  imageConstraints,
+                                  i == _selected && index == _page,
+                                  i,
+                                ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ),
         Positioned(
@@ -322,8 +372,12 @@ class _DamageOverlayPageState extends State<DamageOverlayPage> {
       if (result == null) {
         body = const Text('No analysis result for this photo.');
       } else if (!result.available) {
-        body = Text(
-          result.notice ?? 'Visual analysis is not available for this photo.',
+        body = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(result.notice ?? 'Visual analysis is unavailable for this photo.'),
+            TextButton(onPressed: _analyze, child: const Text('Try again')),
+          ],
         );
       } else if (result.detections.isEmpty) {
         body = const Row(
@@ -393,7 +447,21 @@ class _DamageOverlayPageState extends State<DamageOverlayPage> {
         color: theme.colorScheme.surface,
         boxShadow: const [BoxShadow(blurRadius: 12, color: Colors.black26)],
       ),
-      child: body,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          body,
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => context.push(
+              '/dashboard/report',
+              extra: widget.photos,
+            ),
+            icon: const Icon(Icons.description_outlined),
+            label: const Text('Create inspection report'),
+          ),
+        ],
+      ),
     );
   }
 }

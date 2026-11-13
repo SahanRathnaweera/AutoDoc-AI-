@@ -345,7 +345,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final doc = await _firestore
           .collection(FirestoreCollections.users)
           .doc(user.uid)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 5));
 
       if (doc.exists && doc.data() != null) {
         return UserModel.fromMap(doc.data()!, uid: user.uid);

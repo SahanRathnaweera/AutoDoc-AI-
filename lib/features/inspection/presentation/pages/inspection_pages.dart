@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:file_picker/file_picker.dart';
@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../data/services/inspection_api_service.dart';
 import '../../data/services/inspection_report_pdf_service.dart';
@@ -155,10 +156,13 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
   ];
 
   CameraController? _controller;
+  Future<void> _cameraOperation = Future<void>.value();
+  int _cameraGeneration = 0;
   String? _error;
   bool _capturing = false;
   int _current = 0;
   final Map<int, XFile> _photos = {};
+  final Map<int, Uint8List> _photoBytes = {};
 
   double get _progress => _photos.length / _angles.length;
   bool get _allDone => _photos.length == _angles.length;
@@ -170,15 +174,28 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
     _initCamera();
   }
 
-  Future<void> _initCamera() async {
+  void _initCamera() {
+    final generation = ++_cameraGeneration;
+    _cameraOperation = _cameraOperation.then((_) => _openCamera(generation));
+  }
+
+  bool _cameraRequestIsCurrent(int generation) =>
+      mounted && generation == _cameraGeneration;
+
+  Future<void> _openCamera(int generation) async {
+    if (!_cameraRequestIsCurrent(generation) || _controller != null) return;
+
+    CameraController? opening;
     try {
       final cameras = await availableCameras();
+      if (!_cameraRequestIsCurrent(generation)) return;
       if (cameras.isEmpty) {
-        if (mounted) setState(() => _error = 'No camera found on this device.');
+        setState(() => _error = 'No camera found on this device.');
         return;
       }
+
       final back = cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.back,
+        (camera) => camera.lensDirection == CameraLensDirection.back,
         orElse: () => cameras.first,
       );
       final controller = CameraController(
@@ -186,34 +203,50 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
         ResolutionPreset.high,
         enableAudio: false,
       );
+      opening = controller;
       await controller.initialize();
-      if (!mounted) {
-        await controller.dispose();
-        return;
-      }
+      if (!_cameraRequestIsCurrent(generation)) return;
+
       setState(() {
         _controller = controller;
         _error = null;
       });
-    } on CameraException catch (e) {
-      if (!mounted) return;
+      opening = null;
+    } on CameraException catch (error) {
+      if (!_cameraRequestIsCurrent(generation)) return;
       setState(() {
-        _error = e.code.startsWith('CameraAccessDenied')
+        _error = error.code.startsWith('CameraAccessDenied')
             ? 'Camera permission denied. Enable it in Settings to scan.'
-            : 'Camera error: ${e.description ?? e.code}';
+            : 'Camera error: ${error.description ?? error.code}';
       });
-    } catch (e) {
-      if (mounted) setState(() => _error = 'Could not start camera: $e');
+    } catch (error) {
+      if (_cameraRequestIsCurrent(generation)) {
+        setState(() => _error = 'Could not start camera: $error');
+      }
+    } finally {
+      await _disposeCamera(opening);
+    }
+  }
+
+  void _releaseCamera() {
+    _cameraGeneration++;
+    final controller = _controller;
+    _controller = null;
+    _cameraOperation = _cameraOperation.then((_) => _disposeCamera(controller));
+  }
+
+  Future<void> _disposeCamera(CameraController? controller) async {
+    try {
+      await controller?.dispose();
+    } catch (error) {
+      debugPrint('Could not release camera: $error');
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) return;
     if (state == AppLifecycleState.inactive) {
-      controller.dispose();
-      setState(() => _controller = null);
+      setState(_releaseCamera);
     } else if (state == AppLifecycleState.resumed) {
       _initCamera();
     }
@@ -222,7 +255,7 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _controller?.dispose();
+    _releaseCamera();
     super.dispose();
   }
 
@@ -241,12 +274,15 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
         _capturing) {
       return;
     }
+    final angle = _current;
     setState(() => _capturing = true);
     try {
       final file = await controller.takePicture();
-      if (!mounted) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted || _controller != controller) return;
       setState(() {
-        _photos[_current] = file;
+        _photos[angle] = file;
+        _photoBytes[angle] = bytes;
         final next = _nextEmptyIndex();
         if (next != null) _current = next;
       });
@@ -257,6 +293,8 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
           'Capture failed: ${e.description ?? e.code}',
         );
       }
+    } catch (error) {
+      if (mounted) showCustomSnackBar(context, 'Could not read photo: $error');
     } finally {
       if (mounted) setState(() => _capturing = false);
     }
@@ -265,16 +303,21 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
   void _retakeAll() {
     setState(() {
       _photos.clear();
+      _photoBytes.clear();
       _current = 0;
     });
   }
 
   void _finish() {
-    // TODO: upload/process _photos
-    context.push('/dashboard/damage');
+    if (!_allDone || _capturing) return;
+    final photos = [for (var i = 0; i < _angles.length; i++) _photos[i]!];
+    context.pushReplacement('/dashboard/damage', extra: photos);
   }
 
   Widget _buildPreview() {
+    final captured = _photoBytes[_current];
+    if (captured != null) return Image.memory(captured, fit: BoxFit.cover);
+
     if (_error != null) {
       return Container(
         color: Colors.black87,
@@ -308,10 +351,6 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
         color: Colors.black,
         child: Center(child: CircularProgressIndicator()),
       );
-    }
-    final captured = _photos[_current];
-    if (captured != null) {
-      return Image.file(File(captured.path), fit: BoxFit.cover);
     }
     return FittedBox(
       fit: BoxFit.cover,
@@ -357,7 +396,7 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
   }
 
   Widget _thumb(int index) {
-    final photo = _photos[index];
+    final photo = _photoBytes[index];
     final selected = index == _current;
     return GestureDetector(
       onTap: () => setState(() => _current = index),
@@ -384,7 +423,7 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
               fit: StackFit.expand,
               children: [
                 if (photo != null)
-                  Image.file(File(photo.path), fit: BoxFit.cover)
+                  Image.memory(photo, fit: BoxFit.cover)
                 else
                   Icon(
                     Icons.directions_car_outlined,
@@ -423,11 +462,23 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
     return Scaffold(
       backgroundColor: _navy,
       appBar: AppBar(
+        leading: BackButton(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
         title: const Text('Guided 360 scan'),
         backgroundColor: Colors.transparent,
         actions: [
           if (_photos.isNotEmpty)
-            TextButton(onPressed: _retakeAll, child: const Text('Reset')),
+            TextButton(
+              onPressed: _capturing ? null : _retakeAll,
+              child: const Text('Reset'),
+            ),
         ],
       ),
       body: Column(
@@ -616,7 +667,9 @@ class OcrPage extends StatelessWidget {
 }
 
 class InspectionReportPage extends StatefulWidget {
-  const InspectionReportPage({super.key});
+  const InspectionReportPage({super.key, this.photos = const []});
+
+  final List<XFile> photos;
 
   @override
   State<InspectionReportPage> createState() => _InspectionReportPageState();
@@ -634,7 +687,7 @@ class _InspectionReportPageState extends State<InspectionReportPage> {
   final _imagePicker = ImagePicker();
   String _vehicleType = 'car';
   bool _isDemoMode = false;
-  List<XFile> _images = const [];
+  late List<XFile> _images = List.of(widget.photos);
   PlatformFile? _audio;
   InspectionReport? _report;
   bool _isSubmitting = false;
@@ -798,6 +851,7 @@ class _InspectionReportPageState extends State<InspectionReportPage> {
   Widget build(BuildContext context) {
     return _InspectionScaffold(
       title: 'Automated inspection report',
+      useThemeBackground: true,
       children: _report == null
           ? _buildInspectionForm()
           : _buildReport(_report!),
@@ -985,145 +1039,179 @@ class _InspectionReportPageState extends State<InspectionReportPage> {
         },
   );
 
-  List<Widget> _buildReport(InspectionReport report) => [
-    if (report.isSimulated)
-      const _InfoBanner(
-        icon: Icons.warning_amber_rounded,
-        text:
-            'SIMULATED DEMO REPORT — random placeholders only. No photos or '
-            'audio were analyzed. Do not use for real decisions.',
-        color: Colors.deepOrange,
+  List<Widget> _buildReport(InspectionReport report) {
+    final palette = AppPalette.of(context);
+    return [
+      if (report.isSimulated)
+        _InfoBanner(
+          icon: Icons.warning_amber_rounded,
+          textColor: palette.text,
+          text:
+              'SIMULATED DEMO REPORT — random placeholders only. No photos or '
+              'audio were analyzed. Do not use for real decisions.',
+          color: Colors.deepOrange,
+        ),
+      if (report.isSimulated) const SizedBox(height: 12),
+      if (!report.isSimulated && report.isPartial)
+        _InfoBanner(
+          icon: Icons.warning_amber_rounded,
+          textColor: palette.text,
+          text:
+              'Partial live inspection. Unavailable: '
+              '${report.unavailableComponents.isEmpty ? 'some analysis components' : report.unavailableComponents.join(', ')}. '
+              'No substitute values were generated.',
+          color: Colors.orange,
+        ),
+      if (!report.isSimulated && report.isPartial) const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'AutoDoc AI',
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(color: palette.text, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              report.isSimulated
+                  ? 'Simulated placeholder output'
+                  : report.isPartial
+                  ? 'Partial live inspection results'
+                  : 'AI-assisted inspection summary',
+              style: TextStyle(color: palette.muted),
+            ),
+            Divider(height: 28, color: palette.line),
+            Text(
+              report.vehicleName,
+              style: TextStyle(color: palette.text, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            _ReportLine(label: 'Registration', value: report.registrationNumber),
+            _ReportLine(label: 'Report ID', value: report.reportId),
+            _ReportLine(label: 'Generated', value: report.generatedDate),
+            _ReportLine(
+              label: 'Photos analyzed',
+              value: '${report.photosAnalyzed}',
+            ),
+            _ReportLine(label: 'Damage findings', value: report.damageSummary),
+            _ReportLine(label: 'Engine audio label', value: report.audioLabel),
+            _ReportLine(
+              label: 'Base valuation estimate',
+              value: report.baseEstimateLabel,
+            ),
+            _ReportLine(
+              label: 'Reviewed repair allowance',
+              value: report.repairAllowanceLabel,
+            ),
+            _ReportLine(
+              label: 'Adjusted valuation estimate',
+              value: report.adjustedEstimateLabel,
+            ),
+          ],
+        ),
       ),
-    if (report.isSimulated) const SizedBox(height: 12),
-    if (!report.isSimulated && report.isPartial)
+      const SizedBox(height: 18),
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Visual findings',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: palette.text,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (report.findings.isEmpty)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                textColor: palette.text,
+                iconColor: palette.muted,
+                leading: Icon(
+                  report.isSimulated || !report.visualAnalysisAvailable
+                      ? Icons.info_outline
+                      : Icons.check_circle_outline,
+                ),
+                title: Text(
+                  report.isSimulated
+                      ? 'Visual analysis was not performed in demo mode.'
+                      : !report.visualAnalysisAvailable
+                      ? report.visualNotice
+                      : 'No findings returned by the visual analysis.',
+                ),
+              )
+            else
+              for (var index = 0; index < report.findings.length; index++)
+                _findingTile(report.findings[index], index, palette),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
       _InfoBanner(
-        icon: Icons.warning_amber_rounded,
-        text:
-            'Partial live inspection. Unavailable: '
-            '${report.unavailableComponents.isEmpty ? 'some analysis components' : report.unavailableComponents.join(', ')}. '
-            'No substitute values were generated.',
+        icon: Icons.graphic_eq,
+        textColor: palette.text,
+        text: '${report.audioLabel}. ${report.audioNotice}',
         color: Colors.orange,
       ),
-    if (!report.isSimulated && report.isPartial) const SizedBox(height: 12),
-    Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+      const SizedBox(height: 12),
+      _InfoBanner(
+        icon: Icons.info_outline,
+        textColor: palette.text,
+        text: [report.valuationNotice, report.voiceSummary]
+            .where((part) => part.trim().isNotEmpty)
+            .join('\n\n'),
+        color: Colors.blue,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'AutoDoc AI',
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(color: _navy, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            report.isSimulated
-                ? 'Simulated placeholder output'
-                : report.isPartial
-                ? 'Partial live inspection results'
-                : 'AI-assisted inspection summary',
-            style: const TextStyle(color: Colors.black54),
-          ),
-          const Divider(height: 28),
-          Text(
-            report.vehicleName,
-            style: const TextStyle(color: _navy, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          _ReportLine(label: 'Registration', value: report.registrationNumber),
-          _ReportLine(label: 'Report ID', value: report.reportId),
-          _ReportLine(label: 'Generated', value: report.generatedDate),
-          _ReportLine(
-            label: 'Photos analyzed',
-            value: '${report.photosAnalyzed}',
-          ),
-          _ReportLine(label: 'Damage findings', value: report.damageSummary),
-          _ReportLine(label: 'Engine audio label', value: report.audioLabel),
-          _ReportLine(
-            label: 'Base valuation estimate',
-            value: report.baseEstimateLabel,
-          ),
-          _ReportLine(
-            label: 'Reviewed repair allowance',
-            value: report.repairAllowanceLabel,
-          ),
-          _ReportLine(
-            label: 'Adjusted valuation estimate',
-            value: report.adjustedEstimateLabel,
-          ),
-        ],
-      ),
-    ),
-    const SizedBox(height: 18),
-    const Text(
-      'Visual findings',
-      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-    ),
-    if (report.findings.isEmpty)
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(
-          report.isSimulated || !report.visualAnalysisAvailable
-              ? Icons.info_outline
-              : Icons.check_circle_outline,
+      const SizedBox(height: 18),
+      FilledButton.icon(
+        onPressed: _isGeneratingPdf ? null : _sharePdf,
+        icon: _isGeneratingPdf
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.picture_as_pdf),
+        label: Text(
+          _isGeneratingPdf ? 'Preparing PDF...' : 'Download / share PDF report',
         ),
-        title: Text(
-          report.isSimulated
-              ? 'Visual analysis was not performed in demo mode.'
-              : !report.visualAnalysisAvailable
-              ? report.visualNotice
-              : 'No findings returned by the visual analysis.',
-        ),
-      )
-    else
-      for (var index = 0; index < report.findings.length; index++)
-        _findingTile(report.findings[index], index),
-    const SizedBox(height: 12),
-    _InfoBanner(
-      icon: Icons.graphic_eq,
-      text: '${report.audioLabel}. ${report.audioNotice}',
-      color: Colors.orange,
-    ),
-    const SizedBox(height: 12),
-    _InfoBanner(
-      icon: Icons.info_outline,
-      text: '${report.valuationNotice} ${report.voiceSummary}',
-      color: Colors.blue,
-    ),
-    const SizedBox(height: 18),
-    FilledButton.icon(
-      onPressed: _isGeneratingPdf ? null : _sharePdf,
-      icon: _isGeneratingPdf
-          ? const SizedBox.square(
-              dimension: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.picture_as_pdf),
-      label: Text(
-        _isGeneratingPdf ? 'Preparing PDF...' : 'Download / share PDF report',
       ),
-    ),
-    const SizedBox(height: 8),
-    OutlinedButton.icon(
-      onPressed: _isSubmitting || _isGeneratingPdf
-          ? null
-          : () => setState(() => _report = null),
-      icon: const Icon(Icons.refresh),
-      label: const Text('Start another inspection'),
-    ),
-  ];
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        onPressed: _isSubmitting || _isGeneratingPdf
+            ? null
+            : () => setState(() => _report = null),
+        icon: const Icon(Icons.refresh),
+        label: const Text('Start another inspection'),
+      ),
+    ];
+  }
 
-  Widget _findingTile(InspectionFinding finding, int index) => ListTile(
+  Widget _findingTile(
+    InspectionFinding finding,
+    int index,
+    AppPalette palette,
+  ) => ListTile(
     contentPadding: EdgeInsets.zero,
     leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
-    title: Text('${index + 1}. ${finding.label}'),
+    title: Text(
+      '${index + 1}. ${finding.label}',
+      style: TextStyle(color: palette.text, fontWeight: FontWeight.w600),
+    ),
     subtitle: Text(
       'Photo ${finding.imageIndex + 1} · ${finding.confidenceLabel}'
       '${finding.detail == null ? '' : '\n${finding.detail}'}',
+      style: TextStyle(color: palette.muted),
     ),
   );
 }
@@ -1183,18 +1271,26 @@ class _InspectionShell extends StatelessWidget {
 }
 
 class _InspectionScaffold extends StatelessWidget {
-  const _InspectionScaffold({required this.title, required this.children});
+  const _InspectionScaffold({
+    required this.title,
+    required this.children,
+    this.useThemeBackground = false,
+  });
 
   final String title;
   final List<Widget> children;
+  final bool useThemeBackground;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: _navy,
+    backgroundColor: useThemeBackground ? AppPalette.of(context).bg : _navy,
     appBar: AppBar(title: Text(title), backgroundColor: Colors.transparent),
-    body: ListView(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
-      children: children,
+    body: SafeArea(
+      top: false,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
+        children: children,
+      ),
     ),
   );
 }
@@ -1345,11 +1441,13 @@ class _InfoBanner extends StatelessWidget {
     required this.icon,
     required this.text,
     required this.color,
+    this.textColor,
   });
 
   final IconData icon;
   final String text;
   final Color color;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1362,7 +1460,7 @@ class _InfoBanner extends StatelessWidget {
       children: [
         Icon(icon, color: color),
         const SizedBox(width: 10),
-        Expanded(child: Text(text)),
+        Expanded(child: Text(text, style: TextStyle(color: textColor))),
       ],
     ),
   );
@@ -1409,26 +1507,29 @@ class _ReportLine extends StatelessWidget {
   final String value;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(label, style: const TextStyle(color: Colors.black54)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 3,
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            softWrap: true,
-            style: const TextStyle(color: _navy, fontWeight: FontWeight.w700),
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(label, style: TextStyle(color: palette.muted)),
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              softWrap: true,
+              style: TextStyle(color: palette.text, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

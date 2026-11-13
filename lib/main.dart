@@ -16,9 +16,8 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {}
-  await configureDependencies();
   final firebaseReady = await FirebaseInitializer.initialize();
-  if (firebaseReady) await getIt<FirebaseAuth>().signOut();
+  await configureDependencies();
   await themeController.load();
   runApp(AutoDocApp(auth: firebaseReady ? getIt<FirebaseAuth>() : null));
 }

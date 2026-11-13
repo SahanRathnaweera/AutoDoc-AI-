@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:autodoc_ai/core/utils/app_logger.dart';
 
-import 'firebase_options.dart';
+import '../../firebase_options.dart';
 
 class FirebaseInitializer {
   FirebaseInitializer._();
@@ -28,10 +28,15 @@ class FirebaseInitializer {
   static Future<bool> _doInitialize(FirebaseOptions? options) async {
     try {
       final effectiveOptions = options ?? _resolveDefaultOptions();
-      if (effectiveOptions != null) {
+      if (effectiveOptions != null && _hasClientConfiguration(effectiveOptions)) {
         await Firebase.initializeApp(options: effectiveOptions);
-      } else {
+      } else if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS ||
+              defaultTargetPlatform == TargetPlatform.macOS)) {
         await Firebase.initializeApp();
+      } else {
+        throw StateError('Firebase client configuration is missing for this platform.');
       }
       _isInitialized = true;
       AppLogger.info('Firebase initialized successfully.');
@@ -60,6 +65,14 @@ class FirebaseInitializer {
     }
     return false;
   }
+
+  static bool _hasClientConfiguration(FirebaseOptions options) =>
+      options.apiKey.isNotEmpty &&
+      !options.apiKey.startsWith('your-') &&
+      options.appId.isNotEmpty &&
+      !options.appId.startsWith('your-') &&
+      options.messagingSenderId.isNotEmpty &&
+      options.projectId.isNotEmpty;
 
   static FirebaseOptions? _resolveDefaultOptions() {
     try {

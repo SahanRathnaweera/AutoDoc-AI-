@@ -30,13 +30,26 @@ class DefaultFirebaseOptions {
   }
 
   static String _env(String key) {
-    if (dotenv.isInitialized &&
-        dotenv.env[key] != null &&
-        dotenv.env[key]!.isNotEmpty) {
-      return dotenv.env[key]!;
-    }
-    return String.fromEnvironment(key, defaultValue: '');
+    final bundledValue = dotenv.isInitialized ? dotenv.env[key]?.trim() : null;
+    if (bundledValue != null && bundledValue.isNotEmpty) return bundledValue;
+    return _buildOptions[key] ?? '';
   }
+
+  // Dart environment lookups are guaranteed only for compile-time constants.
+  static const _buildOptions = {
+    'FIREBASE_WEB_API_KEY': String.fromEnvironment('FIREBASE_WEB_API_KEY'),
+    'FIREBASE_WEB_APP_ID': String.fromEnvironment('FIREBASE_WEB_APP_ID'),
+    'FIREBASE_MESSAGING_SENDER_ID': String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    'FIREBASE_PROJECT_ID': String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    'FIREBASE_AUTH_DOMAIN': String.fromEnvironment('FIREBASE_AUTH_DOMAIN'),
+    'FIREBASE_STORAGE_BUCKET': String.fromEnvironment('FIREBASE_STORAGE_BUCKET'),
+    'FIREBASE_ANDROID_API_KEY': String.fromEnvironment('FIREBASE_ANDROID_API_KEY'),
+    'FIREBASE_ANDROID_APP_ID': String.fromEnvironment('FIREBASE_ANDROID_APP_ID'),
+    'FIREBASE_IOS_API_KEY': String.fromEnvironment('FIREBASE_IOS_API_KEY'),
+    'FIREBASE_IOS_APP_ID': String.fromEnvironment('FIREBASE_IOS_APP_ID'),
+    'FIREBASE_IOS_BUNDLE_ID': String.fromEnvironment('FIREBASE_IOS_BUNDLE_ID'),
+    'FIREBASE_WINDOWS_APP_ID': String.fromEnvironment('FIREBASE_WINDOWS_APP_ID'),
+  };
 
   static FirebaseOptions get web => FirebaseOptions(
     apiKey: _env('FIREBASE_WEB_API_KEY'),
