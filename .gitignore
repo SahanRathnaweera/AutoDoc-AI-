@@ -61,3 +61,5 @@ ios/Runner/GoogleService-Info.plist
 
 # Android generated build files
 android/build/
+/backend/.run-venv/
+/backend/.run-venv/
