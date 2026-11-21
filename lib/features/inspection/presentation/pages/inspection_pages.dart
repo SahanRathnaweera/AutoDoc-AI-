@@ -119,9 +119,8 @@ class DashboardPage extends StatelessWidget {
         ],
       ),
       onDestinationSelected: (index) {
-        if (index == 1) context.go('/marketplace');
-        if (index == 2) context.go('/dashboard/report');
-        if (index == 3) context.go('/profile');
+        if (index == 1) context.go('/dashboard/report');
+        if (index == 2) context.go('/profile');
       },
     );
   }
@@ -145,14 +144,30 @@ class GuidedCameraPage extends StatefulWidget {
 class _GuidedCameraPageState extends State<GuidedCameraPage>
     with WidgetsBindingObserver {
   static const _angles = [
-    _ScanAngle('Front left', 'Stand at the front-left corner of the car',
-        Icons.directions_car_filled_rounded, false),
-    _ScanAngle('Front right', 'Move to the front-right corner',
-        Icons.directions_car_filled_rounded, true),
-    _ScanAngle('Rear right', 'Move to the rear-right corner',
-        Icons.directions_car_filled_rounded, false),
-    _ScanAngle('Rear left', 'Move to the rear-left corner',
-        Icons.directions_car_filled_rounded, true),
+    _ScanAngle(
+      'Front left',
+      'Stand at the front-left corner of the car',
+      Icons.directions_car_filled_rounded,
+      false,
+    ),
+    _ScanAngle(
+      'Front right',
+      'Move to the front-right corner',
+      Icons.directions_car_filled_rounded,
+      true,
+    ),
+    _ScanAngle(
+      'Rear right',
+      'Move to the rear-right corner',
+      Icons.directions_car_filled_rounded,
+      false,
+    ),
+    _ScanAngle(
+      'Rear left',
+      'Move to the rear-left corner',
+      Icons.directions_car_filled_rounded,
+      true,
+    ),
   ];
 
   CameraController? _controller;
@@ -414,8 +429,8 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
                 color: selected
                     ? _blue
                     : photo != null
-                        ? Colors.greenAccent
-                        : Colors.white12,
+                    ? Colors.greenAccent
+                    : Colors.white12,
                 width: selected ? 3 : 2,
               ),
             ),
@@ -460,7 +475,6 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
     final angle = _angles[_current];
     final reviewing = _photos.containsKey(_current);
     return Scaffold(
-      backgroundColor: _navy,
       appBar: AppBar(
         leading: BackButton(
           onPressed: () {
@@ -490,8 +504,8 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
               child: LinearProgressIndicator(
                 value: _progress,
                 minHeight: 6,
-                backgroundColor: Colors.white12,
-                color: _cyan,
+                backgroundColor: AppPalette.of(context).line,
+                color: AppPalette.of(context).accent,
               ),
             ),
           ),
@@ -514,8 +528,7 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
                     right: 0,
                     child: Center(
                       child: _CameraBadge(
-                        label:
-                            '${angle.label} · ${(_progress * 100).round()}%',
+                        label: '${angle.label} · ${(_progress * 100).round()}%',
                       ),
                     ),
                   ),
@@ -561,8 +574,9 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
                     ],
                   )
                 : FloatingActionButton(
-                    onPressed:
-                        _controller == null || _capturing ? null : _capture,
+                    onPressed: _controller == null || _capturing
+                        ? null
+                        : _capture,
                     backgroundColor: Colors.white,
                     foregroundColor: _navy,
                     child: _capturing
@@ -625,7 +639,7 @@ class OcrPage extends StatelessWidget {
         Container(
           height: 250,
           decoration: BoxDecoration(
-            color: const Color(0xff233a43),
+            color: AppPalette.of(context).surface,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Stack(
@@ -640,7 +654,10 @@ class OcrPage extends StatelessWidget {
                 width: 260,
                 height: 110,
                 decoration: BoxDecoration(
-                  border: Border.all(color: _cyan, width: 2),
+                  border: Border.all(
+                    color: AppPalette.of(context).accent,
+                    width: 2,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -801,8 +818,7 @@ class _InspectionReportPageState extends State<InspectionReportPage> {
         photosAnalyzed: 0,
         findings: const [],
         audioLabel: audioLabels[random.nextInt(audioLabels.length)],
-        audioNotice:
-            'Random demo placeholder only; no recording or audio model was used.',
+        audioNotice: 'Random demo placeholder only; no recording or audio model was used.',
         valuationNotice:
             'Random demo amount only; it is not a market valuation.',
         voiceSummary:
@@ -851,7 +867,6 @@ class _InspectionReportPageState extends State<InspectionReportPage> {
   Widget build(BuildContext context) {
     return _InspectionScaffold(
       title: 'Automated inspection report',
-      useThemeBackground: true,
       children: _report == null
           ? _buildInspectionForm()
           : _buildReport(_report!),
@@ -1089,10 +1104,16 @@ class _InspectionReportPageState extends State<InspectionReportPage> {
             Divider(height: 28, color: palette.line),
             Text(
               report.vehicleName,
-              style: TextStyle(color: palette.text, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: palette.text,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 12),
-            _ReportLine(label: 'Registration', value: report.registrationNumber),
+            _ReportLine(
+              label: 'Registration',
+              value: report.registrationNumber,
+            ),
             _ReportLine(label: 'Report ID', value: report.reportId),
             _ReportLine(label: 'Generated', value: report.generatedDate),
             _ReportLine(
@@ -1128,10 +1149,8 @@ class _InspectionReportPageState extends State<InspectionReportPage> {
           children: [
             Text(
               'Visual findings',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: palette.text,
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(color: palette.text, fontWeight: FontWeight.w700),
             ),
             if (report.findings.isEmpty)
               ListTile(
@@ -1168,9 +1187,10 @@ class _InspectionReportPageState extends State<InspectionReportPage> {
       _InfoBanner(
         icon: Icons.info_outline,
         textColor: palette.text,
-        text: [report.valuationNotice, report.voiceSummary]
-            .where((part) => part.trim().isNotEmpty)
-            .join('\n\n'),
+        text: [
+          report.valuationNotice,
+          report.voiceSummary,
+        ].where((part) => part.trim().isNotEmpty).join('\n\n'),
         color: Colors.blue,
       ),
       const SizedBox(height: 18),
@@ -1231,7 +1251,6 @@ class _InspectionShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: _navy,
     appBar: AppBar(
       title: Text(title),
       backgroundColor: Colors.transparent,
@@ -1245,17 +1264,12 @@ class _InspectionShell extends StatelessWidget {
     ),
     body: body,
     bottomNavigationBar: NavigationBar(
-      backgroundColor: _panel,
       selectedIndex: selectedIndex,
       onDestinationSelected: onDestinationSelected,
       destinations: const [
         NavigationDestination(
           icon: Icon(Icons.dashboard_outlined),
           label: 'Home',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.storefront_outlined),
-          label: 'Market',
         ),
         NavigationDestination(
           icon: Icon(Icons.receipt_long_outlined),
@@ -1271,19 +1285,13 @@ class _InspectionShell extends StatelessWidget {
 }
 
 class _InspectionScaffold extends StatelessWidget {
-  const _InspectionScaffold({
-    required this.title,
-    required this.children,
-    this.useThemeBackground = false,
-  });
+  const _InspectionScaffold({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
-  final bool useThemeBackground;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: useThemeBackground ? AppPalette.of(context).bg : _navy,
     appBar: AppBar(title: Text(title), backgroundColor: Colors.transparent),
     body: SafeArea(
       top: false,
@@ -1305,7 +1313,7 @@ class _HealthCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: _panel,
+      color: AppPalette.of(context).surface,
       borderRadius: BorderRadius.circular(22),
     ),
     child: Row(
@@ -1319,8 +1327,8 @@ class _HealthCard extends StatelessWidget {
               CircularProgressIndicator(
                 value: score / 100,
                 strokeWidth: 8,
-                backgroundColor: Colors.white10,
-                color: _blue,
+                backgroundColor: AppPalette.of(context).line,
+                color: AppPalette.of(context).accent,
               ),
               Text(
                 '$score',
@@ -1343,9 +1351,12 @@ class _HealthCard extends StatelessWidget {
               const SizedBox(height: 6),
               const Text('Based on visual, engine, and document checks.'),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Excellent condition',
-                style: TextStyle(color: _cyan, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: AppPalette.of(context).accent,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -1370,7 +1381,9 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    color: accent ? _blue : _panel,
+    color: accent
+        ? Theme.of(context).colorScheme.primaryContainer
+        : AppPalette.of(context).surface,
     child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -1431,7 +1444,7 @@ class _CameraBadge extends StatelessWidget {
     ),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      child: Text(label),
+      child: Text(label, style: const TextStyle(color: Colors.white)),
     ),
   );
 }
@@ -1460,7 +1473,9 @@ class _InfoBanner extends StatelessWidget {
       children: [
         Icon(icon, color: color),
         const SizedBox(width: 10),
-        Expanded(child: Text(text, style: TextStyle(color: textColor))),
+        Expanded(
+          child: Text(text, style: TextStyle(color: textColor)),
+        ),
       ],
     ),
   );
@@ -1525,7 +1540,10 @@ class _ReportLine extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               softWrap: true,
-              style: TextStyle(color: palette.text, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: palette.text,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

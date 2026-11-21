@@ -49,7 +49,7 @@ void main() {
     expect(find.text('Create account'), findsOneWidget);
   });
 
-  testWidgets('login opens dashboard and marketplace tabs', (tester) async {
+  testWidgets('login opens dashboard and profile without Marketplace', (tester) async {
     const email = 'driver@example.com';
     const password = 'ExamplePassword123';
     const account = UserEntity(
@@ -98,14 +98,9 @@ void main() {
     expect(find.text('AutoDoc AI'), findsOneWidget);
     expect(find.text('Vehicle health score'), findsOneWidget);
 
-    await tester.tap(find.text('Market'));
-    await tester.pumpAndSettle();
-    expect(find.text('Verified vehicles'), findsOneWidget);
-
-    await tester.tap(find.text('Saved'));
-    await tester.pumpAndSettle();
-    expect(find.text('Saved vehicles'), findsWidgets);
-    expect(find.text('2019 Tesla Model 3'), findsOneWidget);
+    expect(find.text('Market'), findsNothing);
+    expect(find.text('Marketplace'), findsNothing);
+    expect(find.text('Reports'), findsOneWidget);
 
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();

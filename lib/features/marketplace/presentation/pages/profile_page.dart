@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:autodoc_ai/config/injection.dart';
+import 'package:autodoc_ai/core/theme/app_theme.dart';
+import 'package:autodoc_ai/core/theme/theme_controller.dart';
 import 'package:autodoc_ai/core/usecase/usecase.dart';
 import 'package:autodoc_ai/core/utils/show_snackbar.dart';
 import 'package:autodoc_ai/features/authentication/domain/usecases/logout_user.dart';
@@ -35,88 +37,137 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = getIt<FirebaseAuth>().currentUser;
     final displayName = user?.displayName?.trim();
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-      children: [
-        Text(
-          'Profile',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 22),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Icon(
-                    Icons.person,
-                    size: 32,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        displayName == null || displayName.isEmpty
-                            ? 'AutoDoc user'
-                            : displayName,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+    final palette = AppPalette.of(context);
+    final name = displayName == null || displayName.isEmpty
+        ? 'AutoDoc user'
+        : displayName;
+    final email = user?.email;
+    final verified = user?.emailVerified == true;
+    final statusColor = verified ? palette.accent : palette.muted;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          children: [
+            Card(
+              margin: EdgeInsets.zero,
+              elevation: 0,
+              color: palette.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(color: palette.line),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 34,
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                      child: const Icon(Icons.person_outline, size: 32),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      name,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
-                      const SizedBox(height: 4),
-                      Text(user?.email ?? ''),
+                    ),
+                    if (email != null && email.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
-                        user?.emailVerified == true
-                            ? 'Email verified'
-                            : 'Email not verified',
+                        email,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: palette.muted),
+                      ),
+                      const SizedBox(height: 12),
+                      Chip(
+                        avatar: Icon(
+                          verified
+                              ? Icons.verified_outlined
+                              : Icons.mail_outline,
+                          size: 18,
+                          color: statusColor,
+                        ),
+                        label: Text(
+                          verified ? 'Email verified' : 'Email not verified',
+                        ),
+                        labelStyle: TextStyle(color: statusColor),
+                        side: BorderSide(color: palette.line),
                       ),
                     ],
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: 24),
+            Text('Appearance', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 10),
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: themeController,
+              builder: (context, mode, _) => SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    label: Text('Light'),
+                    icon: Icon(Icons.light_mode_outlined),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    label: Text('Dark'),
+                    icon: Icon(Icons.dark_mode_outlined),
+                  ),
+                ],
+                selected: {
+                  mode == ThemeMode.system
+                      ? (theme.brightness == Brightness.dark
+                            ? ThemeMode.dark
+                            : ThemeMode.light)
+                      : mode,
+                },
+                onSelectionChanged: (selection) =>
+                    themeController.setMode(selection.first),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Card(
+              margin: EdgeInsets.zero,
+              elevation: 0,
+              color: palette.surface,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.receipt_long_outlined),
+                    title: const Text('Inspection reports'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.go('/dashboard/report'),
+                  ),
+                  Divider(height: 1, color: palette.line),
+                  ListTile(
+                    leading: const Icon(Icons.help_outline),
+                    title: const Text('Help and support'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showMessage(
+                      context,
+                      'Support is available from your AutoDoc AI team.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: _signingOut ? null : _logout,
+              icon: const Icon(Icons.logout),
+              label: const Text('Log out'),
+            ),
+          ],
         ),
-        const SizedBox(height: 20),
-        ListTile(
-          leading: Icon(Icons.history),
-          title: Text('Inspection history'),
-          subtitle: Text('View your completed vehicle checks'),
-          trailing: Icon(Icons.chevron_right),
-          onTap: () => context.go('/dashboard/report'),
-        ),
-        ListTile(
-          leading: Icon(Icons.notifications_none),
-          title: Text('Notifications'),
-          subtitle: Text('Manage marketplace updates'),
-          trailing: Icon(Icons.chevron_right),
-          onTap: () => _showMessage(context, 'You are up to date.'),
-        ),
-        ListTile(
-          leading: Icon(Icons.help_outline),
-          title: Text('Help and support'),
-          subtitle: Text('Get assistance with AutoDoc AI'),
-          trailing: Icon(Icons.chevron_right),
-          onTap: () => _showMessage(
-            context,
-            'Support is available from your AutoDoc AI team.',
-          ),
-        ),
-        const SizedBox(height: 20),
-        OutlinedButton.icon(
-          onPressed: _signingOut ? null : _logout,
-          icon: const Icon(Icons.logout),
-          label: const Text('Log out'),
-        ),
-      ],
+      ),
     );
   }
 

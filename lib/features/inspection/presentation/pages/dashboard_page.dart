@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../config/injection.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../home/widgets/stencil_hero.dart';
 
@@ -18,6 +20,12 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final p = AppPalette.of(context);
+    final displayName = getIt.isRegistered<FirebaseAuth>()
+        ? getIt<FirebaseAuth>().currentUser?.displayName?.trim()
+        : null;
+    final firstName = displayName == null || displayName.isEmpty
+        ? null
+        : displayName.split(RegExp(r'\s+')).first;
 
     return Scaffold(
       body: SafeArea(
@@ -30,11 +38,23 @@ class DashboardPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _greeting,
-                        style: text.titleSmall?.copyWith(color: p.muted),
+                      Text.rich(
+                        TextSpan(
+                          text: _greeting,
+                          children: [
+                            if (firstName != null)
+                              TextSpan(
+                                text: ', $firstName!',
+                                style: TextStyle(color: p.text),
+                              ),
+                          ],
+                        ),
+                        style: text.titleLarge?.copyWith(
+                          color: p.accent,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 6),
                       Text(
                         'Inspect a vehicle',
                         style: text.headlineLarge?.copyWith(
@@ -83,12 +103,6 @@ class DashboardPage extends StatelessWidget {
               title: 'Inspection report',
               subtitle: 'Create a PDF you can share',
               onTap: () => context.push('/dashboard/report'),
-            ),
-            _ToolRow(
-              icon: Icons.storefront_outlined,
-              title: 'Marketplace',
-              subtitle: 'Browse or list vehicles with verified reports',
-              onTap: () => context.go('/marketplace'),
               isLast: true,
             ),
           ],
@@ -97,18 +111,13 @@ class DashboardPage extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: 0,
         onDestinationSelected: (index) {
-          if (index == 1) context.go('/marketplace');
-          if (index == 2) context.go('/dashboard/report');
-          if (index == 3) context.go('/profile');
+          if (index == 1) context.go('/dashboard/report');
+          if (index == 2) context.go('/profile');
         },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.storefront_outlined),
-            label: 'Market',
           ),
           NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),
@@ -149,9 +158,7 @@ class _ToolRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(bottom: BorderSide(color: p.line)),
+          border: isLast ? null : Border(bottom: BorderSide(color: p.line)),
         ),
         child: Row(
           children: [
@@ -163,7 +170,9 @@ class _ToolRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: text.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                    style: text.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
                     subtitle,

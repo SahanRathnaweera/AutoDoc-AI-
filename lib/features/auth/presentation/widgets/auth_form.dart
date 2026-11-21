@@ -16,25 +16,6 @@ import '../../domain/entities/auth_mode.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _googleMark = Text(
-  'G',
-  style: TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.w800,
-    color: Color(0xFF4285F4),
-  ),
-);
-
-const _yahooMark = Text(
-  'Y',
-  style: TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.w800,
-    color: Color(0xFF6001D2),
-  ),
-);
-
-
 class AuthForm extends StatefulWidget {
   const AuthForm({
     required this.mode,
@@ -355,154 +336,41 @@ class _AuthFormState extends State<AuthForm> {
             ],
           ),
           const SizedBox(height: 18),
-          if (isLogin)
-           
-            Row(
-              children: [
-                Expanded(
-                  child: _SocialButton(
-                    label: 'Google',
-                    leading: _googleMark,
-                    compact: true,
-                    onPressed: _busy
-                        ? null
-                        : () => _socialSignIn(SocialProvider.google),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _SocialButton(
-                    label: 'Yahoo',
-                    leading: _yahooMark,
-                    compact: true,
-                    onPressed: _busy
-                        ? null
-                        : () => _socialSignIn(SocialProvider.yahoo),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _SocialButton(
-                    label: 'Microsoft',
-                    leading: const _MicrosoftMark(),
-                    compact: true,
-                    onPressed: _busy
-                        ? null
-                        : () => _socialSignIn(SocialProvider.microsoft),
-                  ),
-                ),
-              ],
-            )
-          else ...[
-            // Sign up: full labelled buttons.
-            _SocialButton(
-              label: 'Sign up with Google',
-              leading: _googleMark,
-              onPressed: _busy
-                  ? null
-                  : () => _socialSignIn(SocialProvider.google),
-            ),
-            const SizedBox(height: 12),
-            _SocialButton(
-              label: 'Sign up with Yahoo',
-              leading: _yahooMark,
-              onPressed: _busy
-                  ? null
-                  : () => _socialSignIn(SocialProvider.yahoo),
-            ),
-            const SizedBox(height: 12),
-            _SocialButton(
-              label: 'Sign up with Microsoft',
-              leading: const _MicrosoftMark(),
-              onPressed: _busy
-                  ? null
-                  : () => _socialSignIn(SocialProvider.microsoft),
-            ),
-          ],
+          _GoogleSignInButton(
+            label: isLogin ? 'Sign in with Google' : 'Sign up with Google',
+            onPressed: _busy
+                ? null
+                : () => _socialSignIn(SocialProvider.google),
+          ),
         ],
       ),
     );
   }
 }
 
-class _SocialButton extends StatelessWidget {
-  const _SocialButton({
-    required this.label,
-    required this.leading,
-    required this.onPressed,
-    this.compact = false,
-  });
+class _GoogleSignInButton extends StatelessWidget {
+  const _GoogleSignInButton({required this.label, required this.onPressed});
 
   final String label;
-  final Widget leading;
   final VoidCallback? onPressed;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final p = AppPalette.of(context);
-
     return SizedBox(
+      width: double.infinity,
       height: 54,
-      child: Tooltip(
-        message: label,
-        child: OutlinedButton(
-          onPressed: onPressed,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: p.text,
-            backgroundColor: p.surface,
-            side: BorderSide(color: p.line),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Image.asset('assets/images/google_mark.png', width: 20, height: 20),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF1F1F1F),
+          backgroundColor: Colors.white,
+          side: const BorderSide(color: Color(0xFF747775)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          child: compact
-              ? leading
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    leading,
-                    const SizedBox(width: 12),
-                    Flexible(
-                      child: Text(
-                        label,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
         ),
-      ),
-    );
-  }
-}
-
-
-class _MicrosoftMark extends StatelessWidget {
-  const _MicrosoftMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 20,
-      height: 20,
-      child: GridView(
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 2,
-          crossAxisSpacing: 2,
-        ),
-        children: const [
-          ColoredBox(color: Color(0xFFF25022)),
-          ColoredBox(color: Color(0xFF7FBA00)),
-          ColoredBox(color: Color(0xFF00A4EF)),
-          ColoredBox(color: Color(0xFFFFB900)),
-        ],
       ),
     );
   }

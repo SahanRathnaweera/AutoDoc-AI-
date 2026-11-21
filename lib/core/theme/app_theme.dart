@@ -1,7 +1,5 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
- 
 
 class AppColors {
   static const ink = Color(0xFF0B1F33);
@@ -14,7 +12,6 @@ class AppColors {
   static const warn = Color(0xFFE08A00);
   static const fail = Color(0xFFD8392B);
 }
- 
 
 class AppPalette {
   const AppPalette({
@@ -27,46 +24,46 @@ class AppPalette {
     required this.onStrong,
     required this.accent,
   });
- 
-  final Color bg; 
-  final Color surface; 
-  final Color text; 
-  final Color muted; 
-  final Color line; 
+
+  final Color bg;
+  final Color surface;
+  final Color text;
+  final Color muted;
+  final Color line;
   final Color strong;
   final Color onStrong;
   final Color accent;
- 
+
   static const light = AppPalette(
     bg: AppColors.paper,
     surface: AppColors.surface,
     text: AppColors.ink,
-    muted: AppColors.steel,
+    muted: Color(0xFF536678),
     line: AppColors.line,
     strong: AppColors.ink,
     onStrong: Colors.white,
     accent: AppColors.signal,
   );
- 
+
   static const dark = AppPalette(
     bg: Color(0xFF071722),
     surface: Color(0xFF102936),
     text: Color(0xFFEAF2F7),
-    muted: Color(0xFF8FA3B0),
+    muted: Color(0xFFADC0CD),
     line: Color(0xFF24414F),
-    strong: Color(0xFF1688F2),
-    onStrong: Colors.white,
+    strong: Color(0xFF79BEFF),
+    onStrong: Color(0xFF082038),
     accent: Color(0xFF3B9CFF),
   );
- 
+
   static AppPalette of(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark ? dark : light;
 }
- 
+
 class AppTheme {
   static ThemeData get light => _build(AppPalette.light, Brightness.light);
   static ThemeData get dark => _build(AppPalette.dark, Brightness.dark);
- 
+
   static ThemeData _build(AppPalette p, Brightness brightness) {
     final base = ThemeData(
       useMaterial3: true,
@@ -77,14 +74,12 @@ class AppTheme {
         seedColor: AppColors.signal,
         brightness: brightness,
         surface: p.surface,
-      ),
+        onSurface: p.text,
+      ).copyWith(onSurfaceVariant: p.muted, outlineVariant: p.line),
     );
- 
+
     return base.copyWith(
-      textTheme: base.textTheme.apply(
-        bodyColor: p.text,
-        displayColor: p.text,
-      ),
+      textTheme: base.textTheme.apply(bodyColor: p.text, displayColor: p.text),
       appBarTheme: AppBarTheme(
         backgroundColor: p.bg,
         foregroundColor: p.text,
@@ -94,6 +89,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: p.surface,
+        labelStyle: TextStyle(color: p.muted),
+        hintStyle: TextStyle(color: p.muted),
         border: const OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(14)),
           borderSide: BorderSide.none,
@@ -111,5 +108,3 @@ class AppTheme {
     );
   }
 }
- 
-

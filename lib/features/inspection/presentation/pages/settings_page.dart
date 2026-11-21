@@ -11,7 +11,6 @@ class SettingsPage extends StatefulWidget {
 }
  
 class _SettingsPageState extends State<SettingsPage> {
-  bool notificationsEnabled = true;
   bool scanRemindersEnabled = true;
   bool biometricLockEnabled = false;
  
@@ -60,13 +59,6 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(height: 36),
           Text('Preferences', style: titleStyle),
           const SizedBox(height: 8),
-          SwitchListTile(
-            value: notificationsEnabled,
-            onChanged: (value) => setState(() => notificationsEnabled = value),
-            title: const Text('Marketplace notifications'),
-            subtitle: const Text('Receive updates about saved vehicles'),
-            secondary: const Icon(Icons.notifications_outlined),
-          ),
           SwitchListTile(
             value: scanRemindersEnabled,
             onChanged: (value) => setState(() => scanRemindersEnabled = value),
