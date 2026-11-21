@@ -132,12 +132,8 @@ async def lifespan(app):
                 continue  # Bike damage uses the Gemini API.
 
             key = f"{vehicle}_{kind}"
-            ext = "pt" if kind == "damage" else "joblib"
+            ext = "onnx" if kind == "damage" else "joblib"
             path = MODELS / f"{key}_v1.{ext}"
-
-            # Pretrained car damage model uses ONNX.
-            if vehicle == "car" and kind == "damage":
-                path = MODELS / "car_damage_v1.onnx"
 
             if not path.is_file():
                 print(f"Model not installed: {key}", flush=True)
@@ -148,9 +144,9 @@ async def lifespan(app):
                 print(f"Loading model: {key} from {path}", flush=True)
 
                 if kind == "damage":
-                    from ultralytics import YOLO
+                    from app.car_damage import CarDamageModel
 
-                    loaded[key] = YOLO(str(path), task="segment")
+                    loaded[key] = CarDamageModel(path)
                 else:
                     artifact = joblib.load(path)
 
@@ -279,7 +275,7 @@ def ready():
         "note": (
             "all_models_loaded refers to required local models only. "
             "Gemini configuration does not verify key validity, model access or quota. "
-            "ONNX initializes on first prediction. Inspection returns partial "
+            "Car ONNX initializes during startup. Inspection returns partial "
             "results when optional components are unavailable; direct valuation "
             "still requires verified price units. Availability does not establish accuracy."
         ),
@@ -341,11 +337,7 @@ def read_upload(file, max_bytes=10 * 1024 * 1024):
     return data
 
 
-def detect(vehicle, file):
-    if vehicle == "bike":
-        return detect_bike_gemini(file)
-
-    model = get_model(vehicle, "damage")
+def prepare_car_upload(model, file):
     raw = read_upload(file)
 
     try:
@@ -366,7 +358,12 @@ def detect(vehicle, file):
                         "Image exceeds 20 megapixels."
                     )
 
-                image = ImageOps.exif_transpose(source).convert("RGB")
+                ImageOps.exif_transpose(source, in_place=True)
+                if source.mode == "RGB":
+                    return model.prepare(source)
+
+                with source.convert("RGB") as image:
+                    return model.prepare(image)
 
     except (
         UnidentifiedImageError,
@@ -380,28 +377,21 @@ def detect(vehicle, file):
             "Use a valid JPEG/PNG image below 20 megapixels.",
         ) from None
 
+
+def detect(vehicle, file):
+    if vehicle == "bike":
+        return detect_bike_gemini(file)
+
+    model = get_model(vehicle, "damage")
+
     try:
+        # Keep full-resolution decodes from overlapping each other or inference.
         with locks[f"{vehicle}_damage"]:
-            prediction = model.predict(
-                source=image,
-                conf=0.25,
-                imgsz=640,
-                device="cpu",
-                verbose=False,
-            )[0]
-
-        detections = []
-
-        if prediction.boxes is not None:
-            for box in prediction.boxes:
-                class_id = int(box.cls.item())
-
-                detections.append({
-                    "label": prediction.names[class_id],
-                    "confidence": float(box.conf.item()),
-                    "bbox": box.xyxyn[0].tolist(),
-                })
-
+            prepared = prepare_car_upload(model, file)
+            _, width, height, *_ = prepared
+            detections = model.detect(prepared)
+    except HTTPException:
+        raise
     except Exception:
         logging.exception(
             "Damage prediction failed for %s",
@@ -416,8 +406,8 @@ def detect(vehicle, file):
     return {
         "vehicle_type": vehicle,
         "model_version": f"{vehicle}_damage_v1",
-        "image_width": image.width,
-        "image_height": image.height,
+        "image_width": width,
+        "image_height": height,
         "coordinate_format": "xyxy_normalized",
         "orientation": "EXIF corrected",
         "detections": detections,

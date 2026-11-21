@@ -5,9 +5,9 @@ python-multipart
 joblib
 numpy
 pandas
-Pillow
+Pillow>=10.0
 scikit-learn
-ultralytics
+opencv-python-headless
 onnxruntime
 librosa
 soundfile
