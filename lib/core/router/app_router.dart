@@ -11,10 +11,7 @@ import '../../features/inspection/presentation/pages/inspection_pages.dart'
     hide DashboardPage;
 import '../../features/inspection/presentation/pages/settings_page.dart';
 import '../../features/marketplace/presentation/pages/damage_overlay_page.dart';
-import '../../features/marketplace/presentation/pages/marketplace_home_page.dart';
 import '../../features/marketplace/presentation/pages/profile_page.dart';
-import '../../features/marketplace/presentation/pages/seller_listing_page.dart';
-import '../../features/marketplace/presentation/pages/vehicle_detail_page.dart';
 import '../../ocr_screen.dart';
 
 GoRouter createAppRouter({
@@ -78,30 +75,16 @@ GoRouter createAppRouter({
       ],
     ),
     GoRoute(
-      path: '/marketplace',
-      builder: (context, state) => const MarketplaceHomePage(),
-      routes: [
-        GoRoute(
-          path: 'vehicle/:vehicleId',
-          builder: (context, state) =>
-              VehicleDetailPage(vehicleId: state.pathParameters['vehicleId']!),
-          routes: [
-            GoRoute(
-              path: 'damage',
-              builder: (context, state) => const DamageOverlayPage(showDemo: true),
-            ),
-          ],
-        ),
-        GoRoute(
-          path: 'sell',
-          builder: (context, state) => const SellerListingPage(),
-        ),
-      ],
-    ),
-    GoRoute(
       path: '/profile',
       builder: (context, state) => Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: 'Home',
+            icon: const Icon(Icons.home_outlined),
+            onPressed: () => context.go('/dashboard'),
+          ),
+          title: const Text('Profile'),
+        ),
         body: const ProfilePage(),
       ),
     ),
