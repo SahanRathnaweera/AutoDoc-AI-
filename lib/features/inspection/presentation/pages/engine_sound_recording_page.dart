@@ -1,3 +1,4 @@
+// Acoustic Engine Diagnostic Module - Records engine audio for diagnostics.
 import 'dart:async';
 import 'dart:io';
 
