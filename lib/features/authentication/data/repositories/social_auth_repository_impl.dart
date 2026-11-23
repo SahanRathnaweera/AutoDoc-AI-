@@ -15,6 +15,9 @@ import 'package:autodoc_ai/features/authentication/domain/repositories/social_au
 
 @LazySingleton(as: SocialAuthRepository)
 class SocialAuthRepositoryImpl implements SocialAuthRepository {
+  static const String _defaultGoogleServerClientId =
+      '424595017151-q4pcoqmvafhhr0q429ou22j0hdb0kp29.apps.googleusercontent.com';
+
   final fb_auth.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
 
@@ -31,9 +34,11 @@ class SocialAuthRepositoryImpl implements SocialAuthRepository {
     }
 
     final google = GoogleSignIn.instance;
-    const clientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+    const envClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+    final serverClientId =
+        envClientId.isNotEmpty ? envClientId : _defaultGoogleServerClientId;
     await (_googleInitialization ??= google.initialize(
-      serverClientId: clientId.isEmpty ? null : clientId,
+      serverClientId: serverClientId,
     ));
     final account = await google.authenticate();
     final idToken = account.authentication.idToken;

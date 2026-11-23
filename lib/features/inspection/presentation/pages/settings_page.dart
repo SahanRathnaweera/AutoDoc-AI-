@@ -1,25 +1,25 @@
-
 import 'package:flutter/material.dart';
- 
+
 import '../../../../core/theme/theme_controller.dart';
- 
+import 'package:autodoc_ai/features/inspection/presentation/pages/privacy_policy_screen.dart';
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
- 
+
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
- 
+
 class _SettingsPageState extends State<SettingsPage> {
   bool scanRemindersEnabled = true;
   bool biometricLockEnabled = false;
- 
+
   @override
   Widget build(BuildContext context) {
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w700,
     );
- 
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
@@ -78,8 +78,14 @@ class _SettingsPageState extends State<SettingsPage> {
             leading: const Icon(Icons.privacy_tip_outlined),
             title: const Text('Privacy policy'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () =>
-                _showMessage(context, 'Privacy policy is coming soon.'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PrivacyPolicyScreen(),
+                ),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.info_outline),
@@ -96,12 +102,4 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
- 
-  void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
 }
- 
-
