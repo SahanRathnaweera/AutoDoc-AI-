@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/injection.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../home/widgets/stencil_hero.dart';
+import '../../../inspection/presentation/pages/engine_sound_recorder_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -90,7 +91,13 @@ class DashboardPage extends StatelessWidget {
               icon: Icons.graphic_eq,
               title: 'Check engine sound',
               subtitle: '10 to 15 seconds, in a quiet place',
-              onTap: () => context.push('/dashboard/diagnostics'),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const EngineSoundRecorderPage(),
+                  ),
+                );
+              },
             ),
             _ToolRow(
               icon: Icons.car_crash_outlined,
