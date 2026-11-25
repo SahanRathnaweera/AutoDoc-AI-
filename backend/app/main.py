@@ -436,16 +436,16 @@ def damage(
     return detect(vehicle_type, image)
 
 
+
 def classify_audio(vehicle, file):
     artifact = get_model(vehicle, "audio")
 
     try:
         features = audio_features(BytesIO(read_upload(file)))
-    except (ValueError, RuntimeError):
+    except (ValueError, RuntimeError) as exc:
         raise HTTPException(
             422,
-            "Use a supported audio format with a non-silent, unclipped "
-            "10-15 second recording.",
+            f"Audio validation failed: {str(exc)}",
         ) from None
 
     with locks[f"{vehicle}_audio"]:
@@ -463,6 +463,7 @@ def classify_audio(vehicle, file):
             "not a confirmed mechanical diagnosis."
         ),
     }
+
 
 
 @app.post("/api/v1/audio")

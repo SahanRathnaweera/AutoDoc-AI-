@@ -6,6 +6,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
 class EngineSoundRecordingPage extends StatefulWidget {
   const EngineSoundRecordingPage({super.key});
 
@@ -26,6 +30,12 @@ class _EngineSoundRecordingPageState extends State<EngineSoundRecordingPage> {
   bool _isPlaying = false;
   int _remainingSeconds = 15;
 
+  bool _isAnalyzing = false;
+
+  String _vehicleType = 'car';
+  String? _prediction;
+  String? _analysisError;
+
   String? _savedAudioPath;
 
   final List<double> _waveformBars = List.filled(35, 0.08);
@@ -42,6 +52,55 @@ class _EngineSoundRecordingPageState extends State<EngineSoundRecordingPage> {
         _isPlaying = false;
       });
     });
+  }
+
+  Future<void> _analyzeEngineSound() async {
+    if (_savedAudioPath == null) {
+      _showMessage('Please record engine sound first.');
+      return;
+    }
+
+    setState(() {
+      _isAnalyzing = true;
+      _prediction = null;
+      _analysisError = null;
+    });
+
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://10.0.2.2:8000/api/v1/audio'),
+      );
+
+      request.fields['vehicle_type'] = _vehicleType;
+
+      request.files.add(
+        await http.MultipartFile.fromPath('audio', _savedAudioPath!),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _prediction = data['predicted_label']?.toString();
+        });
+      } else {
+        throw Exception(data['detail'] ?? 'Audio analysis failed.');
+      }
+    } catch (e) {
+      setState(() {
+        _analysisError = e.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+      }
+    }
   }
 
   Future<void> _startRecording() async {
@@ -131,22 +190,50 @@ class _EngineSoundRecordingPageState extends State<EngineSoundRecordingPage> {
 
       if (!mounted) return;
 
+      if (path == null) {
+        setState(() {
+          _isRecording = false;
+          _remainingSeconds = 15;
+        });
+        _showMessage('Recording failed: no audio file created.');
+        return;
+      }
+
+      final file = File(path);
+
+      if (!await file.exists()) {
+        setState(() {
+          _isRecording = false;
+          _remainingSeconds = 15;
+        });
+        _showMessage('Recording file does not exist.');
+        return;
+      }
+
+      final fileSize = await file.length();
+
+      if (fileSize <= 44) {
+        setState(() {
+          _isRecording = false;
+          _remainingSeconds = 15;
+        });
+        _showMessage('Recording is empty or contains no audio data.');
+        return;
+      }
+
       setState(() {
         _isRecording = false;
         _remainingSeconds = 15;
         _savedAudioPath = path;
       });
 
-      if (path != null) {
-        _showMessage('Audio saved successfully!');
-      } else {
-        _showMessage('No audio file was created.');
-      }
+      _showMessage('Recording saved! File size: $fileSize bytes');
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
         _isRecording = false;
+        _remainingSeconds = 15;
       });
 
       _showMessage('Could not stop recording: $e');
@@ -154,10 +241,31 @@ class _EngineSoundRecordingPageState extends State<EngineSoundRecordingPage> {
   }
 
   // Play saved audio.
+
   Future<void> _playAudio() async {
-    if (_savedAudioPath == null) return;
+    if (_savedAudioPath == null) {
+      _showMessage('No recording available.');
+      return;
+    }
 
     try {
+      final file = File(_savedAudioPath!);
+
+      if (!await file.exists()) {
+        _showMessage('Audio file not found.');
+        return;
+      }
+
+      final fileSize = await file.length();
+
+      if (fileSize <= 44) {
+        _showMessage('Audio file is empty.');
+        return;
+      }
+
+      await _audioPlayer.stop();
+      await _audioPlayer.setVolume(1.0);
+
       await _audioPlayer.play(DeviceFileSource(_savedAudioPath!));
 
       if (!mounted) return;
@@ -166,7 +274,7 @@ class _EngineSoundRecordingPageState extends State<EngineSoundRecordingPage> {
         _isPlaying = true;
       });
     } catch (e) {
-      _showMessage('Could not play audio: $e');
+      _showMessage('Playback error: $e');
     }
   }
 
@@ -254,130 +362,202 @@ class _EngineSoundRecordingPageState extends State<EngineSoundRecordingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Engine Sound Test')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 20),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 20),
 
-            const Icon(Icons.graphic_eq, size: 65, color: Colors.blue),
+              const Icon(Icons.graphic_eq, size: 65, color: Colors.blue),
 
-            const SizedBox(height: 16),
-
-            const Text(
-              'Acoustic Engine Diagnostics',
-              style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 12),
-
-            const Text(
-              'Record engine sound for 15 seconds. '
-              'Keep the environment as quiet as possible.',
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 30),
-
-            Text(
-              _isRecording
-                  ? '00:${_remainingSeconds.toString().padLeft(2, '0')}'
-                  : '00:15',
-              style: const TextStyle(fontSize: 42, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 25),
-
-            // Live waveform visualizer.
-            Container(
-              height: 130,
-              width: double.infinity,
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: _waveformBars.map((level) {
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 100),
-                    width: 4,
-                    height: 12 + (level * 85),
-                    decoration: BoxDecoration(
-                      color: _isRecording ? Colors.blue : Colors.grey,
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // Start and stop recording.
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: FilledButton.icon(
-                onPressed: _isRecording ? _stopRecording : _startRecording,
-                icon: Icon(_isRecording ? Icons.stop : Icons.mic),
-                label: Text(
-                  _isRecording ? 'Stop Recording' : 'Start Recording',
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Saved audio controls.
-            if (_savedAudioPath != null) ...[
-              const Icon(Icons.check_circle, color: Colors.green, size: 30),
+              const SizedBox(height: 16),
 
               const Text(
-                'Recording saved locally!',
-                style: TextStyle(
+                'Acoustic Engine Diagnostics',
+                style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 12),
+
+              const Text(
+                'Record engine sound for 15 seconds. '
+                'Keep the environment as quiet as possible.',
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 30),
+
+              Text(
+                _isRecording
+                    ? '00:${_remainingSeconds.toString().padLeft(2, '0')}'
+                    : '00:15',
+                style: const TextStyle(
+                  fontSize: 42,
                   fontWeight: FontWeight.bold,
-                  color: Colors.green,
                 ),
               ),
 
-              const SizedBox(height: 15),
+              const SizedBox(height: 25),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FilledButton.icon(
-                    onPressed: _isPlaying ? _pauseAudio : _playAudio,
-                    icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                    label: Text(_isPlaying ? 'Pause' : 'Play Audio'),
+              // Live waveform visualizer.
+              Container(
+                height: 130,
+                width: double.infinity,
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: _waveformBars.map((level) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 100),
+                      width: 4,
+                      height: 12 + (level * 85),
+                      decoration: BoxDecoration(
+                        color: _isRecording ? Colors.blue : Colors.grey,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              // Start and stop recording.
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: FilledButton.icon(
+                  onPressed: _isRecording ? _stopRecording : _startRecording,
+                  icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+                  label: Text(
+                    _isRecording ? 'Stop Recording' : 'Start Recording',
                   ),
+                ),
+              ),
 
-                  const SizedBox(width: 12),
+              const SizedBox(height: 20),
 
-                  OutlinedButton.icon(
-                    onPressed: _deleteRecording,
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Delete'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
+              // Saved audio controls.
+              if (_savedAudioPath != null) ...[
+                const Icon(Icons.check_circle, color: Colors.green, size: 30),
+
+                const Text(
+                  'Recording saved locally!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _isPlaying ? _pauseAudio : _playAudio,
+                      icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                      label: Text(_isPlaying ? 'Pause' : 'Play Audio'),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    OutlinedButton.icon(
+                      onPressed: _deleteRecording,
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Delete'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Existing Play Audio and Delete buttons
+                const SizedBox(height: 20),
+
+                // Select vehicle type
+                DropdownButtonFormField<String>(
+                  value: _vehicleType,
+                  decoration: const InputDecoration(
+                    labelText: 'Vehicle Type',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.directions_car),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'car', child: Text('Car')),
+                    DropdownMenuItem(value: 'bike', child: Text('Bike')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _vehicleType = value;
+                      });
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 15),
+
+                // Analyze engine sound
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton.icon(
+                    onPressed: _isAnalyzing ? null : _analyzeEngineSound,
+                    icon: _isAnalyzing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.analytics),
+                    label: Text(
+                      _isAnalyzing ? 'Analyzing...' : 'Analyze Engine Sound',
                     ),
                   ),
-                ],
-              ),
+                ),
 
-              const SizedBox(height: 10),
+                const SizedBox(height: 12),
 
-              Text(
-                _savedAudioPath!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 10),
-              ),
+                // Display prediction
+                if (_prediction != null)
+                  Text(
+                    'Predicted Result: $_prediction',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+
+                // Display errors
+                if (_analysisError != null)
+                  Text(
+                    'Analysis Error: $_analysisError',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+
+                Text(
+                  _savedAudioPath!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
