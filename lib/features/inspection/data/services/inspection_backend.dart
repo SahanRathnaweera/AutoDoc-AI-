@@ -5,13 +5,14 @@ import 'package:http/http.dart' as http;
 
 abstract final class InspectionBackend {
   static const _configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static const _defaultRenderUrl = 'https://autodoc-ai-qsib.onrender.com';
 
   static String get baseUrl {
     if (_configuredBaseUrl.trim().isNotEmpty) return _configuredBaseUrl.trim();
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000';
+      return _defaultRenderUrl;
     }
-    return 'http://127.0.0.1:8000';
+    return _defaultRenderUrl;
   }
 
   static Uri endpoint(String baseUrl, String path) {

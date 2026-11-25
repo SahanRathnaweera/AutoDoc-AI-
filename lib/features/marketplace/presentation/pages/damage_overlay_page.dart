@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../inspection/data/services/damage_analysis_service.dart';
+import 'auto_inspection_report_page.dart';
 
 class DamageOverlayPage extends StatefulWidget {
   const DamageOverlayPage({
@@ -13,7 +14,7 @@ class DamageOverlayPage extends StatefulWidget {
     this.showDemo = false,
   });
 
-  /// 360 scan එකේ photos (marketplace එකෙන් open කරන විට හිස්).
+  
   final List<XFile> photos;
   final bool showDemo;
 
@@ -82,6 +83,18 @@ class _DamageOverlayPageState extends State<DamageOverlayPage> {
       if (r.imageIndex == photoIndex) return r;
     }
     return null;
+  }
+
+  void _openAutoReport() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AutoInspectionReportPage(
+          photos: widget.photos,
+          results: _results ?? const <PhotoDamageResult>[],
+          angleLabels: _labels,
+        ),
+      ),
+    );
   }
 
   @override
@@ -453,10 +466,7 @@ class _DamageOverlayPageState extends State<DamageOverlayPage> {
           body,
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: () => context.push(
-              '/dashboard/report',
-              extra: widget.photos,
-            ),
+            onPressed: _openAutoReport,
             icon: const Icon(Icons.description_outlined),
             label: const Text('Create inspection report'),
           ),
